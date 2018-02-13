@@ -331,22 +331,37 @@ UCTNode* UCTNode::uct_select_child(int color) {
     }
 
     auto numerator = static_cast<float>(std::sqrt((double)parentvisits));
-    auto fpu_reduction = cfg_fpu_reduction * std::sqrt(total_visited_policy);
+    //auto fpu_reduction = cfg_fpu_reduction * std::sqrt(total_visited_policy);
 
     for (const auto& child : m_children) {
         if (!child->valid()) {
             continue;
         }
 
+        // get_eval() will automatically set first-play-urgency
         auto winrate = child->get_eval(color);
-        if (child->get_visits() == 0) {
-            // First play urgency
-            winrate -= fpu_reduction;
+
+        // calculate opportunity and risk
+        double opportunity = -1.0, risk = 2.0;
+
+        for (const auto& child2 : child->m_children)
+        {
+            if (child2->valid())
+            {
+                auto child_winrate = child2->get_eval(color);
+                if (child_winrate > opportunity) opportunity = child_winrate;
+                if (child_winrate < risk) risk = child_winrate;
+            }
         }
+
+        // use plain winrate if no info
+        if (opportunity < -0.5)
+            opportunity = risk = winrate;
+
         auto psa = child->get_score();
         auto denom = 1.0f + child->get_visits();
         auto puct = cfg_puct * psa * (numerator / denom);
-        auto value = winrate + puct;
+        auto value = winrate * 0.5 + opportunity * 0.3 + risk * 0.2 + puct;
         assert(value > -1000.0f);
 
         if (value > best_value) {
