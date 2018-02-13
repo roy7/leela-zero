@@ -190,11 +190,21 @@ void UCTSearch::dump_stats(KoState & state, UCTNode & parent) {
         std::string tmp = state.move_to_text(node->get_move());
         std::string pvstring(tmp);
 
-        myprintf("%4s -> %7d (V: %5.2f%%) (N: %5.2f%%) PV: ",
+        // prints 500% if no visits
+        double min_winrate = 5.0;
+
+        for (const auto &child_node : node->get_children()) {
+            if (!child_node->get_visits()) continue;
+            double cur_score = child_node->get_eval(color);
+            if (cur_score < min_winrate) min_winrate = cur_score;
+        }
+
+        myprintf("%4s -> %7d (V: %5.2f%%) (N: %5.2f%%) (MV: %5.2f%%) PV: ",
             tmp.c_str(),
             node->get_visits(),
             node->get_eval(color)*100.0f,
-            node->get_score() * 100.0f);
+            node->get_score() * 100.0f,
+            min_winrate * 100.0f);
 
         KoState tmpstate = state;
 
