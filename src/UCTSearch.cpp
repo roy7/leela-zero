@@ -205,12 +205,15 @@ void UCTSearch::dump_stats(KoState & state, UCTNode & parent, int depth) {
         KoState tmpstate = state;
 
         tmpstate.play_move(node->get_move());
+
+        KoState tmpstate2 = tmpstate;
+
         pvstring += " " + get_pv(tmpstate, *node);
 
         myprintf("%s\n", pvstring.c_str());
 
         if (depth) {
-            dump_stats(tmpstate, *node, depth - 1);
+            dump_stats(tmpstate2, *node, depth - 1);
         }
     }
 }
