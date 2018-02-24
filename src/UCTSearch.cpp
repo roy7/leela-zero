@@ -168,7 +168,7 @@ SearchResult UCTSearch::play_simulation(GameState & currstate,
     return result;
 }
 
-void UCTSearch::dump_stats(KoState & state, UCTNode & parent) {
+void UCTSearch::dump_stats(KoState & state, UCTNode & parent, int depth) {
     if (cfg_quiet || !parent.has_children()) {
         return;
     }
@@ -192,7 +192,8 @@ void UCTSearch::dump_stats(KoState & state, UCTNode & parent) {
         std::string tmp = state.move_to_text(node->get_move());
         std::string pvstring(tmp);
 
-        myprintf("%4s -> %7d (V: %5.2f%%) (N: %5.2f%%) (LCB: %5.2f%%) (UCB: %5.2f%%) PV: ",
+        myprintf("%d %4s -> %7d (V: %5.2f%%) (N: %5.2f%%) (LCB: %5.2f%%) (UCB: %5.2f%%) PV: ",
+            depth,
             tmp.c_str(),
             node->get_visits(),
             node->get_eval(color)*100.0f,
@@ -207,6 +208,10 @@ void UCTSearch::dump_stats(KoState & state, UCTNode & parent) {
         pvstring += " " + get_pv(tmpstate, *node);
 
         myprintf("%s\n", pvstring.c_str());
+
+        if (depth) {
+            dump_stats(tmpstate, *node, depth - 1);
+        }
     }
 }
 
@@ -546,7 +551,7 @@ int UCTSearch::think(int color, passflag_t passflag) {
     // display search info
     myprintf("\n");
 
-    dump_stats(m_rootstate, *m_root);
+    dump_stats(m_rootstate, *m_root, 2);
     Training::record(m_rootstate, *m_root);
 
     Time elapsed;
