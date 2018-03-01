@@ -257,6 +257,11 @@ void UCTNode::update(float eval) {
     accumulate_eval(eval);
 }
 
+void UCTNode::update_sig(float eval) {
+    m_visits_sig++;
+    accumulate_eval_sig(eval);
+}
+
 bool UCTNode::has_children() const {
     return m_has_children;
 }
@@ -298,11 +303,11 @@ float UCTNode::get_net_eval(int tomove) const {
     return m_net_eval;
 }
 
-float UCTNode::get_lcb(int color) const {
+double UCTNode::get_lcb(int color) const {
     return binomial_distribution<>::find_lower_bound_on_p( get_visits(), floor(get_eval(color) * get_visits()), CI_ALPHA);
 }
 
-float UCTNode::get_ucb(int color) const {
+double UCTNode::get_ucb(int color) const {
     return binomial_distribution<>::find_upper_bound_on_p( get_visits(), floor(get_eval(color) * get_visits()), CI_ALPHA);
 }
 
@@ -310,8 +315,16 @@ double UCTNode::get_blackevals() const {
     return m_blackevals;
 }
 
+double UCTNode::get_blackevals_sig() const {
+    return m_blackevals_sig;
+}
+
 void UCTNode::accumulate_eval(float eval) {
     atomic_add(m_blackevals, (double)eval);
+}
+
+void UCTNode::accumulate_eval_sig(float eval) {
+    atomic_add(m_blackevals_sig, (double)eval);
 }
 
 UCTNode* UCTNode::uct_select_child(int color) {
@@ -468,7 +481,11 @@ bool UCTNode::valid() const {
     return m_valid;
 }
 
-Network::scored_node* UCTNode::get_best_lcb_child() {
+UCTNode* UCTNode::get_best_lcb_child() {
     return m_best_lcb_child;
+}
+
+void UCTNode::set_best_lcb_child(UCTNode* node) {
+    m_best_lcb_child = node;
 }
 

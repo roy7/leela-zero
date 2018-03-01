@@ -55,15 +55,18 @@ public:
     void set_score(float score);
     float get_eval(int tomove) const;
     float get_net_eval(int tomove) const;
-    float get_lcb(int color) const;
-    float get_ucb(int color) const;
+    double get_lcb(int color) const;
+    double get_ucb(int color) const;
     double get_blackevals() const;
+    double get_blackevals_sig() const;
     void accumulate_eval(float eval);
+    void accumulate_eval_sig(float eval);
     void virtual_loss(void);
     void virtual_loss_undo(void);
     void dirichlet_noise(float epsilon, float alpha);
     void randomize_first_proportionally();
     void update(float eval);
+    void update_sig(float eval);
 
     UCTNode* uct_select_child(int color);
     UCTNode* get_first_child() const;
@@ -74,7 +77,8 @@ public:
     void sort_children(int color);
     UCTNode& get_best_root_child(int color);
     SMP::Mutex& get_mutex();
-    Network::scored_node* get_best_lcb_child();
+    UCTNode* get_best_lcb_child();
+    void set_best_lcb_child(UCTNode* const node);
 
 private:
     void link_nodelist(std::atomic<int>& nodecount,
@@ -88,10 +92,12 @@ private:
     // UCT
     std::atomic<std::int16_t> m_virtual_loss{0};
     std::atomic<int> m_visits{0};
+    std::atomic<int> m_visits_sig{0};
     // UCT eval
     float m_score;
     float m_net_eval{0};  // Original net eval for this node (not children).
     std::atomic<double> m_blackevals{0};
+    std::atomic<double> m_blackevals_sig{0};
     // node alive (not superko)
     std::atomic<bool> m_valid{true};
     // Is someone adding scores to this node?
@@ -104,7 +110,7 @@ private:
     std::vector<node_ptr_t> m_children;
 
     // Best node based on LCB
-    Network::scored_node *m_best_lcb_child = nullptr;
+    UCTNode* m_best_lcb_child = nullptr;
 };
 
 #endif
