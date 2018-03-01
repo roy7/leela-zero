@@ -57,8 +57,8 @@ public:
     float get_eval(int tomove) const;
     float get_eval_sig(int tomove) const;
     float get_net_eval(int tomove) const;
-    double get_lcb(int color) const;
-    double get_ucb(int color) const;
+    float get_lcb(int color) const;
+    float get_ucb(int color) const;
     double get_blackevals() const;
     double get_blackevals_sig() const;
     void accumulate_eval(float eval);
