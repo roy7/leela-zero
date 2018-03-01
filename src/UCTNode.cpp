@@ -457,3 +457,8 @@ void UCTNode::invalidate() {
 bool UCTNode::valid() const {
     return m_valid;
 }
+
+Network::scored_node* UCTNode::get_best_lcb_child() {
+    return m_best_lcb_child;
+}
+

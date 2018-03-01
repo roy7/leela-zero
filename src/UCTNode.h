@@ -72,6 +72,7 @@ public:
     void sort_children(int color);
     UCTNode& get_best_root_child(int color);
     SMP::Mutex& get_mutex();
+    Network::scored_node* get_best_lcb_child();
 
 private:
     void link_nodelist(std::atomic<int>& nodecount,
@@ -99,6 +100,9 @@ private:
     // Tree data
     std::atomic<bool> m_has_children{false};
     std::vector<node_ptr_t> m_children;
+
+    // Best node based on LCB
+    Network::scored_node *m_best_lcb_child = nullptr;
 };
 
 #endif

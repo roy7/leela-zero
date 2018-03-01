@@ -156,6 +156,28 @@ SearchResult UCTSearch::play_simulation(GameState & currstate,
                 next->invalidate();
             } else {
                 result = play_simulation(currstate, next);
+
+                if (result.valid()) {
+                    if (node->get_best_lcb_child == nullptr) {
+                        // First expanded child, so it's the best child.
+                        node->set_best_lcb_child(next);
+                        node->update_sig(result.eval());
+                    } else if (node->get_best_lcb_child == next) {
+                        // Already working on best child
+                        node->update_sig(result.eval());
+                    } else if (next->get_lcb() > node->get_best_lcb_child()->get_lcb()) {
+                        // New best child.
+                        node->set_best_lcb_child(next);
+
+                        // TODO Recalculate significant evals and visits.
+                    } else if (next->get_ucb() > node->get_best_lcb_child()->get_lcb()) {
+                        // Should redo this with a Chi-squared test
+                        node->update_sig(result.eval());
+                    } else {
+                        // Results from this node not significant. Ignore them.
+                        // TODO If the node was significant previously, we need to reset.
+                    }
+                }
             }
         }
     }
