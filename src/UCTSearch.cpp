@@ -175,7 +175,7 @@ SearchResult UCTSearch::play_simulation(GameState & currstate,
                         node->update_sig(result.eval());
                     } else {
                         // Results from this node not significant. Ignore them.
-                        // TODO If the node was significant previously, we need to reset.
+                        // TODO If the node was significant previously, we need to recalculate.
                     }
                 }
             }
