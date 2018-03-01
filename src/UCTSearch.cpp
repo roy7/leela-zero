@@ -165,6 +165,9 @@ SearchResult UCTSearch::play_simulation(GameState & currstate,
                     } else if (node->get_best_lcb_child() == next) {
                         // Already working on best child
                         node->update_sig(result.eval());
+
+                        // TODO: It's possible our LCB has moved higher and someone's UCB is too low now.
+                        // Must be a quicker way to handle this than recalculating every time.
                     } else if (next->get_lcb(color) > node->get_best_lcb_child()->get_lcb(color)) {
                         // New best child.
                         node->set_best_lcb_child(next);
