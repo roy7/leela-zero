@@ -278,6 +278,10 @@ int UCTNode::get_visits() const {
     return m_visits;
 }
 
+int UCTNode::get_visits_sig() const {
+    return m_visits_sig;
+}
+
 float UCTNode::get_eval(int tomove) const {
     // Due to the use of atomic updates and virtual losses, it is
     // possible for the visit count to change underneath us. Make sure
@@ -286,6 +290,24 @@ float UCTNode::get_eval(int tomove) const {
     auto visits = get_visits() + virtual_loss;
     assert(visits > 0);
     auto blackeval = get_blackevals();
+    if (tomove == FastBoard::WHITE) {
+        blackeval += static_cast<double>(virtual_loss);
+    }
+    auto score = static_cast<float>(blackeval / (double)visits);
+    if (tomove == FastBoard::WHITE) {
+        score = 1.0f - score;
+    }
+    return score;
+}
+
+float UCTNode::get_eval_sig(int tomove) const {
+    // Due to the use of atomic updates and virtual losses, it is
+    // possible for the visit count to change underneath us. Make sure
+    // to return a consistent result to the caller by caching the values.
+    auto virtual_loss = int{m_virtual_loss};
+    auto visits = get_visits_sig() + virtual_loss;
+    assert(visits > 0);
+    auto blackeval = get_blackevals_sig();
     if (tomove == FastBoard::WHITE) {
         blackeval += static_cast<double>(virtual_loss);
     }

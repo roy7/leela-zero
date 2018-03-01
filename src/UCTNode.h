@@ -51,9 +51,11 @@ public:
     bool valid() const;
     int get_move() const;
     int get_visits() const;
+    int get_visits_sig() const;
     float get_score() const;
     void set_score(float score);
     float get_eval(int tomove) const;
+    float get_eval_sig(int tomove) const;
     float get_net_eval(int tomove) const;
     double get_lcb(int color) const;
     double get_ucb(int color) const;
