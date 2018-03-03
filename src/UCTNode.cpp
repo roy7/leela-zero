@@ -93,6 +93,7 @@ bool UCTNode::create_children(std::atomic<int>& nodecount,
         m_net_eval = 1.0f - m_net_eval;
     }
     eval = m_net_eval;
+myprintf("Create children initial eval %f\n", eval);
 
     std::vector<Network::scored_node> nodelist;
 
@@ -499,16 +500,21 @@ void UCTNode::set_best_lcb_child(UCTNode* node) {
 
 void UCTNode::recalculate_sig(int color) {
     // TODO Do a lock here?
-    atomic_add(m_blackevals_sig, get_net_eval(color) - get_blackevals_sig());
+//myprintf("Recalc: %f %f (%f%%)\n", get_blackevals_sig(), (color == FastBoard::WHITE ? 1 - get_net_eval(color) : get_net_eval(color)) - get_blackevals_sig(), get_blackevals_sig() / get_visits_sig() );
+//myprintf("Recalc: %d %d\n", get_visits_sig(), 1 - get_visits_sig());
+
+    atomic_add(m_blackevals_sig, (color == FastBoard::WHITE ? 1 - get_net_eval(color) : get_net_eval(color)) - get_blackevals_sig());
     atomic_add(m_visits_sig, 1 - get_visits_sig());
 
     for (const auto& child : get_children()) { 
         if (child->get_visits_sig()) {
             if (child->get_ucb(color) >= get_best_lcb_child()->get_lcb(color)) {
+//myprintf("Recalc: Adding child visits %d\n", child->get_visits_sig());
                 m_visits_sig += child->get_visits_sig();
+//myprintf("Recalc: Adding child eval %f (%f%%)\n", child->get_blackevals_sig(), child->get_blackevals_sig() / child->get_visits_sig());
                 accumulate_eval_sig(child->get_blackevals_sig());
             } else {
-                myprintf("Child skipper for UCB < LCB\n");
+                myprintf("Child skipper for UCB !>= LCB %f !>= %f\n", child->get_ucb(color), get_best_lcb_child()->get_lcb(color));
             }
         }
     }
