@@ -512,3 +512,19 @@ void UCTNode::set_best_lcb_child(UCTNode* node) {
     m_best_lcb_child = node;
 }
 
+void UCTNode::recalculate_sig(float eval, int color) {
+    // TODO Do a lock here?
+    atomic_add(m_blackevals_sig, eval - get_blackevals_sig());
+    atomic_add(m_visits_sig, 1 - get_visits_sig());
+
+    for (const auto& child : get_children()) { 
+        if (child->get_visits()) {
+            if (child->get_ucb(color) >= get_best_lcb_child()->get_lcb(color)) {
+                update_sig(child->get_blackevals_sig());
+            } else {
+                myprintf("Child skipper for UCB < LCB\n");
+            }
+        }
+    }
+}
+

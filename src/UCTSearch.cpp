@@ -138,6 +138,7 @@ SearchResult UCTSearch::play_simulation(GameState & currstate,
             auto success = node->create_children(m_nodes, currstate, eval);
             if (success) {
                 result = SearchResult::from_eval(eval);
+                node->update_sig(result.eval());
             }
         } else {
             auto eval = node->eval_state(currstate);
@@ -168,17 +169,23 @@ SearchResult UCTSearch::play_simulation(GameState & currstate,
 
                         // TODO: It's possible our LCB has moved higher and someone's UCB is too low now.
                         // Must be a quicker way to handle this than recalculating every time.
+                        // Store ucb/lcb info in a heap? But larger Nodes use a lot of ram.
+                        //node->recalculate_sig(node->eval_state(currstate), color);
                     } else if (next->get_lcb(color) > node->get_best_lcb_child()->get_lcb(color)) {
                         // New best child.
                         node->set_best_lcb_child(next);
+                        node->update_sig(result.eval());
 
-                        // TODO Recalculate significant evals and visits.
-                    } else if (next->get_ucb(color) > node->get_best_lcb_child()->get_lcb(color)) {
+                        // Recalculate significant evals and visits.
+                        //node->recalculate_sig(node->eval_state(currstate), color);
+                    } else if (next->get_ucb(color) >= node->get_best_lcb_child()->get_lcb(color)) {
                         // Should redo this with a Chi-squared test
                         node->update_sig(result.eval());
                     } else {
                         // Results from this node not significant. Ignore them.
-                        // TODO If the node was significant previously, we need to recalculate.
+                        // If the node was significant previously, we need to recalculate.
+                        // TODO For now just recalculate all the time. Gotta start somewhere!
+                        //node->recalculate_sig(node->eval_state(currstate), color);
                     }
                 }
             }
@@ -217,11 +224,12 @@ void UCTSearch::dump_stats(KoState & state, UCTNode & parent, int depth) {
         std::string tmp = state.move_to_text(node->get_move());
         std::string pvstring(tmp);
 
-        myprintf("%d %4s -> %7d/%7d (V: %5.2f%%) (N: %5.2f%%) (LCB: %5.2f%%) (UCB: %5.2f%%) PV: ",
+        myprintf("%d %4s -> %7d/%7d (V: %5.2f%%/%5.2f%%) (N: %5.2f%%) (LCB: %5.2f%%) (UCB: %5.2f%%) PV: ",
             depth,
             tmp.c_str(),
             node->get_visits_sig(),
             node->get_visits(),
+            node->get_visits() ? node->get_eval_sig(color)*100.0f : 0.0f,
             node->get_visits() ? node->get_eval(color)*100.0f : 0.0f,
             node->get_score() * 100.0f,
             //binomial_distribution<>::find_lower_bound_on_p( node->get_visits(), floor(node->get_eval(color) * node->get_visits()), CI_ALPHA) * 100.0f,
@@ -530,6 +538,7 @@ int UCTSearch::think(int color, passflag_t passflag) {
     if (!m_root->has_children()) {
         m_root->create_children(m_nodes, m_rootstate, root_eval);
         m_root->update(root_eval);
+        m_root->update_sig(root_eval);
     } else {
         root_eval = m_root->get_eval(color);
     }

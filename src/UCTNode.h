@@ -69,6 +69,7 @@ public:
     void randomize_first_proportionally();
     void update(float eval);
     void update_sig(float eval);
+    void recalculate_sig(float eval, int color);
 
     UCTNode* uct_select_child(int color);
     UCTNode* get_first_child() const;
