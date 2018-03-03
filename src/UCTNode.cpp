@@ -518,9 +518,10 @@ void UCTNode::recalculate_sig(float eval, int color) {
     atomic_add(m_visits_sig, 1 - get_visits_sig());
 
     for (const auto& child : get_children()) { 
-        if (child->get_visits()) {
+        if (child->get_visits_sig()) {
             if (child->get_ucb(color) >= get_best_lcb_child()->get_lcb(color)) {
-                update_sig(child->get_blackevals_sig());
+                m_visits_sig += child->get_visits_sig();
+                accumulate_eval_sig(child->get_blackevals_sig());
             } else {
                 myprintf("Child skipper for UCB < LCB\n");
             }
