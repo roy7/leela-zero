@@ -45,7 +45,6 @@ public:
     bool has_children() const;
     bool create_children(std::atomic<int>& nodecount,
                          GameState& state, float& eval);
-    float eval_state(GameState& state);
     void kill_superkos(const KoState& state);
     void invalidate();
     bool valid() const;
@@ -69,7 +68,7 @@ public:
     void randomize_first_proportionally();
     void update(float eval);
     void update_sig(float eval);
-    void recalculate_sig(float eval, int color);
+    void recalculate_sig(int color);
 
     UCTNode* uct_select_child(int color);
     UCTNode* get_first_child() const;
