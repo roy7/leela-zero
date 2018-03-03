@@ -167,7 +167,7 @@ SearchResult UCTSearch::play_simulation(GameState & currstate,
                         // TODO: It's possible our LCB has moved higher and someone's UCB is too low now.
                         // Must be a quicker way to handle this than recalculating every time.
                         // Store ucb/lcb info in a heap? But larger Nodes use a lot of ram.
-myprintf("Recalc: (%s) node->get_best_lcb_child() == next\n", currstate.move_to_text(next->get_move()).c_str());
+//myprintf("Recalc: (%s) node->get_best_lcb_child() == next\n", currstate.move_to_text(next->get_move()).c_str());
                         node->recalculate_sig(color);
                     } else if (next->get_lcb(color) > node->get_best_lcb_child()->get_lcb(color)) {
                         // New best child.
@@ -175,7 +175,7 @@ myprintf("Recalc: (%s) node->get_best_lcb_child() == next\n", currstate.move_to_
                         node->update_sig(result.eval());
 
                         // Recalculate significant evals and visits.
-myprintf("Recalc: (%s) next->get_lcb(color) > node->get_best_lcb_child()->get_lcb(color)\n", currstate.move_to_text(next->get_move()).c_str());
+//myprintf("Recalc: (%s) next->get_lcb(color) > node->get_best_lcb_child()->get_lcb(color)\n", currstate.move_to_text(next->get_move()).c_str());
                         node->recalculate_sig(color);
                     } else if (next->get_ucb(color) >= node->get_best_lcb_child()->get_lcb(color)) {
                         // Should redo this with a Chi-squared test
@@ -184,7 +184,7 @@ myprintf("Recalc: (%s) next->get_lcb(color) > node->get_best_lcb_child()->get_lc
                         // Results from this node not significant. Ignore them.
                         // If the node was significant previously, we need to recalculate.
                         // TODO For now just recalculate all the time. Gotta start somewhere!
-myprintf("Recalc: (%s) else\n", currstate.move_to_text(next->get_move()).c_str());
+//myprintf("Recalc: (%s) else\n", currstate.move_to_text(next->get_move()).c_str());
                         node->recalculate_sig(color);
                     }
                 }
@@ -581,7 +581,7 @@ int UCTSearch::think(int color, passflag_t passflag) {
     // display search info
     myprintf("\n");
 
-    dump_stats(m_rootstate, *m_root, 3);
+    dump_stats(m_rootstate, *m_root, 2);
     Training::record(m_rootstate, *m_root);
 
     Time elapsed;

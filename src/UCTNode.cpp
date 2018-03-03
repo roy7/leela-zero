@@ -93,7 +93,7 @@ bool UCTNode::create_children(std::atomic<int>& nodecount,
         m_net_eval = 1.0f - m_net_eval;
     }
     eval = m_net_eval;
-myprintf("Create children initial eval %f\n", eval);
+//myprintf("Create children initial eval %f\n", eval);
 
     std::vector<Network::scored_node> nodelist;
 
@@ -348,8 +348,8 @@ UCTNode* UCTNode::uct_select_child(int color) {
     auto parentvisits = size_t{0};
     for (const auto& child : m_children) {
         if (child->valid()) {
-            parentvisits += child->get_visits();
-            if (child->get_visits() > 0) {
+            parentvisits += child->get_visits_sig();
+            if (child->get_visits_sig() > 0) {
                 total_visited_policy += child->get_score();
             }
         }
@@ -366,11 +366,11 @@ UCTNode* UCTNode::uct_select_child(int color) {
         }
 
         float winrate = fpu_eval;
-        if (child->get_visits() > 0) {
-            winrate = child->get_eval(color);
+        if (child->get_visits_sig() > 0) {
+            winrate = child->get_eval_sig(color);
         }
         auto psa = child->get_score();
-        auto denom = 1.0 + child->get_visits();
+        auto denom = 1.0 + child->get_visits_sig();
         auto puct = cfg_puct * psa * (numerator / denom);
         auto value = winrate + puct;
         assert(value > -1000.0);
@@ -514,7 +514,7 @@ void UCTNode::recalculate_sig(int color) {
 //myprintf("Recalc: Adding child eval %f (%f%%)\n", child->get_blackevals_sig(), child->get_blackevals_sig() / child->get_visits_sig());
                 accumulate_eval_sig(child->get_blackevals_sig());
             } else {
-                myprintf("Child skipper for UCB !>= LCB %f !>= %f\n", child->get_ucb(color), get_best_lcb_child()->get_lcb(color));
+                //myprintf("Child skipper for UCB !>= LCB %f !>= %f\n", child->get_ucb(color), get_best_lcb_child()->get_lcb(color));
             }
         }
     }
