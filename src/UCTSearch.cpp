@@ -226,8 +226,11 @@ void UCTSearch::dump_stats(FastState & state, UCTNode & parent, int depth) {
         FastState tmpstate2 = tmpstate;
         std::string pv = move + " " + get_pv(tmpstate, *node);
 
-        myprintf("%d %4s -> %7d/%7d (V: %5.2f%%/%5.2f%%) (N: %5.2f%%) (LCB: %5.2f%%) (UCB: %5.2f%%) PV: %s\n",
-            depth,
+        if (depth > 0) {
+            myprintf("%d ", depth);
+        }
+
+        myprintf("%4s -> %7d/%7d (V: %5.2f%%/%5.2f%%) (N: %5.2f%%) (LCB: %5.2f%%) (UCB: %5.2f%%) PV: %s\n",
             move.c_str(),
             node->get_visits_sig(),
             node->get_visits(),
@@ -581,7 +584,7 @@ int UCTSearch::think(int color, passflag_t passflag) {
     // display search info
     myprintf("\n");
 
-    dump_stats(m_rootstate, *m_root, 2);
+    dump_stats(m_rootstate, *m_root, 0);
     Training::record(m_rootstate, *m_root);
 
     Time elapsed;
