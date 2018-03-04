@@ -490,7 +490,7 @@ bool UCTNode::valid() const {
     return m_valid;
 }
 
-UCTNode* UCTNode::get_best_lcb_child() {
+UCTNode* UCTNode::get_best_lcb_child() const {
     return m_best_lcb_child;
 }
 
@@ -499,12 +499,13 @@ void UCTNode::set_best_lcb_child(UCTNode* node) {
 }
 
 void UCTNode::recalculate_sig(int color) {
-    // TODO Do a lock here?
+    LOCK(get_mutex(), lock);
+
 //myprintf("Recalc: %f %f (%f%%)\n", get_blackevals_sig(), (color == FastBoard::WHITE ? 1 - get_net_eval(color) : get_net_eval(color)) - get_blackevals_sig(), get_blackevals_sig() / get_visits_sig() );
 //myprintf("Recalc: %d %d\n", get_visits_sig(), 1 - get_visits_sig());
 
-    atomic_add(m_blackevals_sig, (color == FastBoard::WHITE ? 1 - get_net_eval(color) : get_net_eval(color)) - get_blackevals_sig());
-    atomic_add(m_visits_sig, 1 - get_visits_sig());
+    m_blackevals_sig = color == FastBoard::WHITE ? 1 - get_net_eval(color) : get_net_eval(color);
+    m_visits_sig = 1;
 
     for (const auto& child : get_children()) { 
         if (child->get_visits_sig()) {

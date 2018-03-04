@@ -79,7 +79,7 @@ public:
     void sort_children(int color);
     UCTNode& get_best_root_child(int color);
     SMP::Mutex& get_mutex();
-    UCTNode* get_best_lcb_child();
+    UCTNode* get_best_lcb_child() const;
     void set_best_lcb_child(UCTNode* const node);
 
 private:
