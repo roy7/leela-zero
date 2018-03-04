@@ -155,12 +155,14 @@ SearchResult UCTSearch::play_simulation(GameState & currstate,
             } else {
                 result = play_simulation(currstate, next);
 
+                const auto current_best_child = node->get_best_lcb_child();
+
                 if (result.valid()) {
-                    if (node->get_best_lcb_child() == nullptr) {
+                    if (current_best_child == nullptr) {
                         // First expanded child, so it's the best child.
                         node->set_best_lcb_child(next);
                         node->update_sig(result.eval());
-                    } else if (node->get_best_lcb_child() == next) {
+                    } else if (current_best_child == next) {
                         // Already working on best child
                         node->update_sig(result.eval());
 
@@ -169,7 +171,7 @@ SearchResult UCTSearch::play_simulation(GameState & currstate,
                         // Store ucb/lcb info in a heap? But larger Nodes use a lot of ram.
 //myprintf("Recalc: (%s) node->get_best_lcb_child() == next\n", currstate.move_to_text(next->get_move()).c_str());
                         node->recalculate_sig(color);
-                    } else if (next->get_lcb(color) > node->get_best_lcb_child()->get_lcb(color)) {
+                    } else if (next->get_lcb(color) > current_best_child->get_lcb(color)) {
                         // New best child.
                         node->set_best_lcb_child(next);
                         node->update_sig(result.eval());
@@ -177,7 +179,7 @@ SearchResult UCTSearch::play_simulation(GameState & currstate,
                         // Recalculate significant evals and visits.
 //myprintf("Recalc: (%s) next->get_lcb(color) > node->get_best_lcb_child()->get_lcb(color)\n", currstate.move_to_text(next->get_move()).c_str());
                         node->recalculate_sig(color);
-                    } else if (next->get_ucb(color) >= node->get_best_lcb_child()->get_lcb(color)) {
+                    } else if (next->get_ucb(color) >= current_best_child->get_lcb(color)) {
                         // Should redo this with a Chi-squared test
                         node->update_sig(result.eval());
                     } else {
