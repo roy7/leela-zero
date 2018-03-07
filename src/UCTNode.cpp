@@ -507,7 +507,8 @@ void UCTNode::recalculate_sig(int color) {
     m_blackevals_sig = color == FastBoard::WHITE ? 1 - get_net_eval(color) : get_net_eval(color);
     m_visits_sig = 1;
 
-    for (const auto& child : get_children()) { 
+    for (const auto& child : get_children()) {
+        LOCK(child->get_mutex(), child_lock);
         if (child->get_visits_sig()) {
             if (child->get_ucb(color) >= get_best_lcb_child()->get_lcb(color)) {
 //myprintf("Recalc: Adding child visits %d\n", child->get_visits_sig());
