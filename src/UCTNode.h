@@ -44,12 +44,13 @@ public:
     ~UCTNode() = default;
 
     bool create_children(std::atomic<int>& nodecount,
-                         GameState& state, float& eval);
+                         GameState& state, float& eval,
+                         float mem_full = 0.0f);
 
     const std::vector<node_ptr_t>& get_children() const;
     void sort_children(int color);
     UCTNode& get_best_root_child(int color);
-    UCTNode* uct_select_child(int color);
+    UCTNode* uct_select_child(int color, bool is_root);
 
     size_t count_nodes() const;
     SMP::Mutex& get_mutex();
@@ -69,10 +70,6 @@ public:
     float get_net_eval(int tomove) const;
     float get_lcb(int color) const;
     float get_ucb(int color) const;
-    double get_blackevals() const;
-    double get_blackevals_sig() const;
-    void accumulate_eval(float eval);
-    void accumulate_eval_sig(float eval);
     void virtual_loss(void);
     void virtual_loss_undo(void);
     void update(float eval);
@@ -97,7 +94,12 @@ private:
         ACTIVE
     };
     void link_nodelist(std::atomic<int>& nodecount,
-                       std::vector<Network::scored_node>& nodelist);
+                       std::vector<Network::scored_node>& nodelist,
+                       float mem_full);
+    double get_blackevals() const;
+    double get_blackevals_sig() const;
+    void accumulate_eval(float eval);
+    void accumulate_eval_sig(float eval);
 
     // Note : This class is very size-sensitive as we are going to create
     // tens of millions of instances of these.  Please put extra caution
@@ -111,18 +113,11 @@ private:
     std::atomic<int> m_visits_sig{0};
     // UCT eval
     float m_score;
-<<<<<<< HEAD
-    float m_net_eval{0};  // Original net eval for this node (not children).
-    std::atomic<double> m_blackevals{0};
-    std::atomic<double> m_blackevals_sig{0};
-    // node alive (not superko)
-    std::atomic<bool> m_valid{true};
-=======
     // Original net eval for this node (not children).
     float m_net_eval{0.0f};
     std::atomic<double> m_blackevals{0.0};
+    std::atomic<double> m_blackevals_sig{0};
     std::atomic<Status> m_status{ACTIVE};
->>>>>>> 4d2f93ef8aa2efc44b1fc35f96e7c9be6e6fc5dc
     // Is someone adding scores to this node?
     // We don't need to unset this.
     bool m_is_expanding{false};

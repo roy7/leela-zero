@@ -55,7 +55,8 @@ SMP::Mutex& UCTNode::get_mutex() {
 
 bool UCTNode::create_children(std::atomic<int>& nodecount,
                               GameState& state,
-                              float& eval) {
+                              float& eval,
+                              float mem_full) {
     // check whether somebody beat us to it (atomic)
     if (has_children()) {
         return false;
@@ -115,12 +116,13 @@ bool UCTNode::create_children(std::atomic<int>& nodecount,
         }
     }
 
-    link_nodelist(nodecount, nodelist);
+    link_nodelist(nodecount, nodelist, mem_full);
     return true;
 }
 
 void UCTNode::link_nodelist(std::atomic<int>& nodecount,
-                            std::vector<Network::scored_node>& nodelist) {
+                            std::vector<Network::scored_node>& nodelist,
+                            float mem_full) {
     if (nodelist.empty()) {
         return;
     }
@@ -130,8 +132,28 @@ void UCTNode::link_nodelist(std::atomic<int>& nodecount,
 
     LOCK(get_mutex(), lock);
 
-    m_children.reserve(nodelist.size());
+    auto min_psa = 0.0f;
+    // If we are halfway through our memory budget, start trimming
+    // moves with very low policy priors.
+    if (mem_full > 0.5f) {
+        auto max_psa = nodelist[0].first;
+        // Memory is almost exhausted, trim more aggressively.
+        if (mem_full > 0.95f) {
+            min_psa = max_psa * 0.01f;
+        } else {
+            min_psa = max_psa * 0.001f;
+        }
+        m_children.reserve(
+            std::count_if(cbegin(nodelist), cend(nodelist),
+                [=](const auto& node) { return node.first >= min_psa; }
+            )
+        );
+    } else {
+        m_children.reserve(nodelist.size());
+    }
+
     for (const auto& node : nodelist) {
+        if (node.first < min_psa) continue;
         m_children.emplace_back(
             std::make_unique<UCTNode>(node.second, node.first)
         );
@@ -199,7 +221,7 @@ float UCTNode::get_eval(int tomove) const {
     if (tomove == FastBoard::WHITE) {
         blackeval += static_cast<double>(virtual_loss);
     }
-    auto score = static_cast<float>(blackeval / (double)visits);
+    auto score = static_cast<float>(blackeval / double(visits));
     if (tomove == FastBoard::WHITE) {
         score = 1.0f - score;
     }
@@ -250,16 +272,16 @@ double UCTNode::get_blackevals_sig() const {
 }
 
 void UCTNode::accumulate_eval(float eval) {
-    atomic_add(m_blackevals, (double)eval);
+    atomic_add(m_blackevals, double(eval));
 }
 
 void UCTNode::accumulate_eval_sig(float eval) {
     atomic_add(m_blackevals_sig, (double)eval);
 }
 
-UCTNode* UCTNode::uct_select_child(int color) {
+UCTNode* UCTNode::uct_select_child(int color, bool is_root) {
     UCTNode* best = nullptr;
-    auto best_value = -1000.0;
+    auto best_value = std::numeric_limits<double>::lowest();
 
     LOCK(get_mutex(), lock);
 
@@ -275,8 +297,14 @@ UCTNode* UCTNode::uct_select_child(int color) {
         }
     }
 
-    auto numerator = std::sqrt((double)parentvisits);
-    auto fpu_reduction = cfg_fpu_reduction * std::sqrt(total_visited_policy);
+    auto numerator = std::sqrt(double(parentvisits));
+    auto fpu_reduction = 0.0f;
+    // Lower the expected eval for moves that are likely not the best.
+    // Do not do this if we have introduced noise at this node exactly
+    // to explore more.
+    if (!is_root || !cfg_noise) {
+        fpu_reduction = cfg_fpu_reduction * std::sqrt(total_visited_policy);
+    }
     // Estimated eval for unknown nodes = original parent NN eval - reduction
     auto fpu_eval = get_net_eval(color) - fpu_reduction;
 
@@ -293,7 +321,7 @@ UCTNode* UCTNode::uct_select_child(int color) {
         auto denom = 1.0 + child->get_visits_sig();
         auto puct = cfg_puct * psa * (numerator / denom);
         auto value = winrate + puct;
-        assert(value > -1000.0);
+        assert(value > std::numeric_limits<double>::lowest());
 
         if (value > best_value) {
             best_value = value;
