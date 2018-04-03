@@ -270,7 +270,8 @@ UCTNode* UCTNode::uct_select_child(int color, bool is_root) {
         fpu_reduction = cfg_fpu_reduction * std::sqrt(total_visited_policy);
     }
     // Estimated eval for unknown nodes = original parent NN eval - reduction
-    auto fpu_eval = get_net_eval(color) - fpu_reduction;
+    //auto fpu_eval = get_net_eval(color) - fpu_reduction;
+    auto fpu_eval = binomial_distribution<>::find_lower_bound_on_p( 2, get_net_eval(color) - fpu_reduction + 1.0, CI_ALPHA );
 
     for (const auto& child : m_children) {
         if (!child->active()) {
@@ -279,7 +280,8 @@ UCTNode* UCTNode::uct_select_child(int color, bool is_root) {
 
         float winrate = fpu_eval;
         if (child->get_visits() > 0) {
-            winrate = child->get_eval(color);
+            //winrate = child->get_eval(color);
+            winrate = binomial_distribution<>::find_lower_bound_on_p( child->get_visits() + 1, child->get_eval(color) * child->get_visits() + 1.0, CI_ALPHA);
         }
         auto psa = child->get_score();
         auto denom = 1.0 + child->get_visits();
