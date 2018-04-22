@@ -1,6 +1,6 @@
 /*
     This file is part of Leela Zero.
-    Copyright (C) 2017 Gian-Carlo Pascutto
+    Copyright (C) 2017-2018 Gian-Carlo Pascutto and contributors
 
     Leela Zero is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -183,7 +183,9 @@ SearchResult UCTSearch::play_simulation(GameState & currstate,
 
     if (node->has_children() && !result.valid()) {
         auto next = node->uct_select_child(color, node == m_root.get());
+        auto move = next->get_move();
 
+<<<<<<< HEAD
         if (next != nullptr) {
             auto move = next->get_move();
 
@@ -229,6 +231,13 @@ SearchResult UCTSearch::play_simulation(GameState & currstate,
                     }
                 }
             }
+=======
+        currstate.play_move(move);
+        if (move != FastBoard::PASS && currstate.superko()) {
+            next->invalidate();
+        } else {
+            result = play_simulation(currstate, next);
+>>>>>>> caef8572720e494f6e97bb5eac3113858bae7ffc
         }
     }
 
@@ -629,8 +638,9 @@ int UCTSearch::think(int color, passflag_t passflag) {
 
     myprintf("Thinking at most %.1f seconds...\n", time_for_move/100.0f);
 
-    // create a sorted list off legal moves (make sure we
+    // create a sorted list of legal moves (make sure we
     // play something legal and decent even in time trouble)
+<<<<<<< HEAD
     float root_eval;
     const auto had_children = m_root->has_children();
     if (m_root->expandable()) {
@@ -655,6 +665,9 @@ int UCTSearch::think(int color, passflag_t passflag) {
         auto alpha = 0.03f * 361.0f / BOARD_SQUARES;
         m_root->dirichlet_noise(0.25f, alpha);
     }
+=======
+    m_root->prepare_root_node(color, m_nodes, m_rootstate);
+>>>>>>> caef8572720e494f6e97bb5eac3113858bae7ffc
 
     m_run = true;
     int cpus = cfg_num_threads;
@@ -725,15 +738,12 @@ int UCTSearch::think(int color, passflag_t passflag) {
 void UCTSearch::ponder() {
     update_root();
 
+    m_root->prepare_root_node(m_rootstate.board.get_to_move(),
+                              m_nodes, m_rootstate);
+
     m_run = true;
-    int cpus = cfg_num_threads;
-
-    // There are a lot of special cases where the root node assumes all
-    // childen are inflated.
-    m_root->inflate_all_children();
-
     ThreadGroup tg(thread_pool);
-    for (int i = 1; i < cpus; i++) {
+    for (int i = 1; i < cfg_num_threads; i++) {
         tg.add_task(UCTWorker(m_rootstate, this, m_root.get()));
     }
     auto keeprunning = true;
