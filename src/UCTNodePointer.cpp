@@ -74,6 +74,11 @@ int UCTNodePointer::get_visits() const {
     return 0;
 }
 
+int UCTNodePointer::get_visits_sig() const {
+    if (is_inflated()) return read_ptr()->get_visits_sig();
+    return 0;
+}
+
 float UCTNodePointer::get_lcb(int color) const {
     assert(is_inflated());
     return read_ptr()->get_lcb(color);
@@ -98,6 +103,18 @@ float UCTNodePointer::get_eval(int tomove) const {
     // this can only be called if it is an inflated pointer
     assert(is_inflated());
     return read_ptr()->get_eval(tomove);
+}
+
+float UCTNodePointer::get_eval_sig(int tomove) const {
+    // this can only be called if it is an inflated pointer
+    assert(is_inflated());
+    return read_ptr()->get_eval_sig(tomove);
+}
+
+double UCTNodePointer::get_blackevals_sig() const {
+    // this can only be called if it is an inflated pointer
+    assert(is_inflated());
+    return read_ptr()->get_blackevals_sig();
 }
 
 int UCTNodePointer::get_move() const {

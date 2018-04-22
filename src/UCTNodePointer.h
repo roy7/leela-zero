@@ -105,6 +105,7 @@ public:
     // constructing UCTNode
     bool valid() const;
     int get_visits() const;
+    int get_visits_sig() const;
     float get_lcb(int color) const;
     float get_ucb(int color) const;
     float get_score() const;
@@ -112,6 +113,8 @@ public:
     int get_move() const;
     // this can only be called if it is an inflated pointer
     float get_eval(int tomove) const;
+    float get_eval_sig(int tomove) const;
+    double get_blackevals_sig() const;
 };
 
 #endif

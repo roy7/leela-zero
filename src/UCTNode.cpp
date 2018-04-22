@@ -432,15 +432,15 @@ void UCTNode::recalculate_sig(int color) {
     m_visits_sig = 1;
 
     for (const auto& child : get_children()) {
-        LOCK(child->get_mutex(), child_lock);
-        if (child->get_visits_sig()) {
-            if (child->get_ucb(color) >= get_best_lcb_child()->get_lcb(color)) {
-//myprintf("Recalc: Adding child visits %d\n", child->get_visits_sig());
-                m_visits_sig += child->get_visits_sig();
-//myprintf("Recalc: Adding child eval %f (%f%%)\n", child->get_blackevals_sig(), child->get_blackevals_sig() / child->get_visits_sig());
-                accumulate_eval_sig(child->get_blackevals_sig());
+        //LOCK(child.get_mutex(), child_lock);
+        if (child.get_visits_sig()) {
+            if (child.get_ucb(color) >= get_best_lcb_child()->get_lcb(color)) {
+//myprintf("Recalc: Adding child visits %d\n", child.get_visits_sig());
+                m_visits_sig += child.get_visits_sig();
+//myprintf("Recalc: Adding child eval %f (%f%%)\n", child.get_blackevals_sig(), child.get_blackevals_sig() / child.get_visits_sig());
+                accumulate_eval_sig(child.get_blackevals_sig());
             } else {
-                //myprintf("Child skipped for UCB !>= LCB %f !>= %f\n", child->get_ucb(color), get_best_lcb_child()->get_lcb(color));
+                //myprintf("Child skipped for UCB !>= LCB %f !>= %f\n", child.get_ucb(color), get_best_lcb_child()->get_lcb(color));
             }
         }
     }

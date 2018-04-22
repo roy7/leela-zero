@@ -89,6 +89,9 @@ public:
     std::unique_ptr<UCTNode> find_child(const int move);
     void inflate_all_children();
 
+    double get_blackevals() const;
+    double get_blackevals_sig() const;
+
 private:
     enum Status : char {
         INVALID, // superko
@@ -98,8 +101,6 @@ private:
     void link_nodelist(std::atomic<int>& nodecount,
                        std::vector<Network::scored_node>& nodelist,
                        float min_psa_ratio);
-    double get_blackevals() const;
-    double get_blackevals_sig() const;
     void accumulate_eval(float eval);
     void accumulate_eval_sig(float eval);
 
@@ -118,7 +119,7 @@ private:
     // Original net eval for this node (not children).
     float m_net_eval{0.0f};
     std::atomic<double> m_blackevals{0.0};
-    std::atomic<double> m_blackevals_sig{0};
+    std::atomic<double> m_blackevals_sig{0.0};
     std::atomic<Status> m_status{ACTIVE};
     // Is someone adding scores to this node?
     bool m_is_expanding{false};
