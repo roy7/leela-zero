@@ -183,9 +183,7 @@ SearchResult UCTSearch::play_simulation(GameState & currstate,
 
     if (node->has_children() && !result.valid()) {
         auto next = node->uct_select_child(color, node == m_root.get());
-        auto move = next->get_move();
 
-<<<<<<< HEAD
         if (next != nullptr) {
             auto move = next->get_move();
 
@@ -231,13 +229,6 @@ SearchResult UCTSearch::play_simulation(GameState & currstate,
                     }
                 }
             }
-=======
-        currstate.play_move(move);
-        if (move != FastBoard::PASS && currstate.superko()) {
-            next->invalidate();
-        } else {
-            result = play_simulation(currstate, next);
->>>>>>> caef8572720e494f6e97bb5eac3113858bae7ffc
         }
     }
 
@@ -640,34 +631,7 @@ int UCTSearch::think(int color, passflag_t passflag) {
 
     // create a sorted list of legal moves (make sure we
     // play something legal and decent even in time trouble)
-<<<<<<< HEAD
-    float root_eval;
-    const auto had_children = m_root->has_children();
-    if (m_root->expandable()) {
-        m_root->create_children(m_nodes, m_rootstate, root_eval);
-    }
-    if (had_children) {
-        root_eval = m_root->get_eval(color);
-    } else {
-        m_root->update(root_eval);
-        m_root->update_sig(root_eval);
-        root_eval = (color == FastBoard::BLACK ? root_eval : 1.0f - root_eval);
-    }
-    myprintf("NN eval=%f\n", root_eval);
-
-    // Now that the new root is installed, there are a lot of special
-    // cases where root node assumes all childs are inflated.
-    m_root->inflate_all_children();
-
-    m_root->kill_superkos(m_rootstate);
-    if (cfg_noise) {
-        // Adjust the Dirichlet noise's alpha constant to the board size
-        auto alpha = 0.03f * 361.0f / BOARD_SQUARES;
-        m_root->dirichlet_noise(0.25f, alpha);
-    }
-=======
     m_root->prepare_root_node(color, m_nodes, m_rootstate);
->>>>>>> caef8572720e494f6e97bb5eac3113858bae7ffc
 
     m_run = true;
     int cpus = cfg_num_threads;
