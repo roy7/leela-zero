@@ -25,6 +25,7 @@
 #include <limits>
 #include <memory>
 #include <type_traits>
+#include <algorithm>
 #include <boost/math/distributions/binomial.hpp>
 #include <boost/math/distributions/normal.hpp>
 
@@ -43,10 +44,41 @@ using namespace boost::math;
 
 constexpr int UCTSearch::UNLIMITED_PLAYOUTS;
 
-UCTSearch::UCTSearch(GameState& g)
-    : m_rootstate(g) {
+class OutputAnalysisData {
+public:
+    OutputAnalysisData(const std::string& move, int visits, int winrate, std::string pv) :
+        m_move(move), m_visits(visits), m_winrate(winrate), m_pv(pv) {};
+
+    std::string get_info_string(int order) const {
+        auto tmp = "info move " + m_move + " visits " + std::to_string(m_visits) +
+                          " winrate " + std::to_string(m_winrate);
+        if (order >= 0) {
+            tmp += " order " + std::to_string(order);
+        }
+        tmp += " pv " + m_pv;
+        return tmp;
+    }
+
+    friend bool operator<(const OutputAnalysisData& a, const OutputAnalysisData& b) {
+        if (a.m_visits == b.m_visits) {
+            return a.m_winrate < b.m_winrate;
+        }
+        return a.m_visits < b.m_visits;
+    }
+
+private:
+    std::string m_move;
+    int m_visits;
+    int m_winrate;
+    std::string m_pv;
+};
+
+
+UCTSearch::UCTSearch(GameState& g, Network& network)
+    : m_rootstate(g), m_network(network) {
     set_playout_limit(cfg_max_playouts);
     set_visit_limit(cfg_max_visits);
+
     m_root = std::make_unique<UCTNode>(FastBoard::PASS, 0.0f);
 }
 
@@ -126,7 +158,7 @@ void UCTSearch::update_root() {
     m_playouts = 0;
 
 #ifndef NDEBUG
-    auto start_nodes = m_root->count_nodes();
+    auto start_nodes = m_root->count_nodes_and_clear_expand_state();
 #endif
 
     if (!advance_to_new_rootstate() || !m_root) {
@@ -136,7 +168,7 @@ void UCTSearch::update_root() {
     m_last_rootstate.reset(nullptr);
 
     // Check how big our search tree (reused or new) is.
-    m_nodes = m_root->count_nodes();
+    m_nodes = m_root->count_nodes_and_clear_expand_state();
 
 #ifndef NDEBUG
     if (m_nodes > 0) {
@@ -175,7 +207,7 @@ SearchResult UCTSearch::play_simulation(GameState & currstate,
             float eval;
             const auto had_children = node->has_children();
             const auto success =
-                node->create_children(m_nodes, currstate, eval,
+                node->create_children(m_network, m_nodes, currstate, eval,
                                       get_min_psa_ratio());
             if (!had_children && success) {
                 result = SearchResult::from_eval(eval);
@@ -231,8 +263,8 @@ void UCTSearch::dump_stats(FastState & state, UCTNode & parent) {
         myprintf("%4s -> %7d (V: %5.2f%%) (N: %5.2f%%) (LCB-N: %5.2f%%) (UCB-N: %5.2f%%) (LCB-Bi: %5.2f%%) (UCB-Bi: %5.2f%%) (Var: %5.4f) PV: %s\n",
             move.c_str(),
             node->get_visits(),
-            node->get_visits() ? node->get_pure_eval(color)*100.0f : 0.0f,
-            node->get_score() * 100.0f,
+            node->get_visits() ? node->get_raw_eval(color)*100.0f : 0.0f,
+            node->get_policy() * 100.0f,
             node->get_lcb_normal(color) * 100.0f,
             node->get_ucb_normal(color) * 100.0f,
             node->get_lcb_binomial(color) * 100.0f,
@@ -244,6 +276,9 @@ void UCTSearch::dump_stats(FastState & state, UCTNode & parent) {
 }
 
 void UCTSearch::output_analysis(FastState & state, UCTNode & parent) {
+    // We need to make a copy of the data before sorting
+    auto sortable_data = std::vector<OutputAnalysisData>();
+
     if (!parent.has_children()) {
         return;
     }
@@ -259,13 +294,24 @@ void UCTSearch::output_analysis(FastState & state, UCTNode & parent) {
         tmpstate.play_move(node->get_move());
         std::string pv = move + " " + get_pv(tmpstate, *node);
         auto move_eval = node->get_visits() ?
-            static_cast<int>(node->get_pure_eval(color) * 10000) : 0;
-        gtp_printf_raw("info %s %s %s %d %s %d %s %s\n",
-                       "move", move.c_str(),
-                       "visits", node->get_visits(),
-                       "winrate", move_eval,
-                       "pv", pv.c_str());
+                         static_cast<int>(node->get_raw_eval(color) * 10000) : 0;
+        // Store data in array
+        sortable_data.emplace_back(move, node->get_visits(), move_eval, pv);
+
     }
+    // Sort array to decide order
+    std::stable_sort(rbegin(sortable_data), rend(sortable_data));
+
+    auto i = 0;
+    // Output analysis data in gtp stream
+    for (const auto& node : sortable_data) {
+        if (i > 0) {
+            gtp_printf_raw(" ");
+        }
+        gtp_printf_raw(node.get_info_string(i).c_str());
+        i++;
+    }
+    gtp_printf_raw("\n");
 }
 
 void tree_stats_helper(const UCTNode& node, size_t depth,
@@ -309,7 +355,7 @@ void UCTSearch::tree_stats(const UCTNode& node) {
     }
 }
 
-bool UCTSearch::should_resign(passflag_t passflag, float bestscore) {
+bool UCTSearch::should_resign(passflag_t passflag, float besteval) {
     if (passflag & UCTSearch::NORESIGN) {
         // resign not allowed
         return false;
@@ -320,9 +366,9 @@ bool UCTSearch::should_resign(passflag_t passflag, float bestscore) {
         return false;
     }
 
-    const size_t board_squares = m_rootstate.board.get_boardsize()
-                               * m_rootstate.board.get_boardsize();
-    const auto move_threshold = board_squares / 4;
+    const size_t num_intersections = m_rootstate.board.get_boardsize()
+                                   * m_rootstate.board.get_boardsize();
+    const auto move_threshold = num_intersections / 4;
     const auto movenum = m_rootstate.get_movenum();
     if (movenum <= move_threshold) {
         // too early in game to resign
@@ -334,7 +380,7 @@ bool UCTSearch::should_resign(passflag_t passflag, float bestscore) {
     const auto is_default_cfg_resign = cfg_resignpct < 0;
     const auto resign_threshold =
         0.01f * (is_default_cfg_resign ? 10 : cfg_resignpct);
-    if (bestscore > resign_threshold) {
+    if (besteval > resign_threshold) {
         // eval > cfg_resign
         return false;
     }
@@ -346,10 +392,10 @@ bool UCTSearch::should_resign(passflag_t passflag, float bestscore) {
             resign_threshold / (1 + m_rootstate.get_handicap());
 
         // Blend the thresholds for the first ~215 moves.
-        auto blend_ratio = std::min(1.0f, movenum / (0.6f * board_squares));
+        auto blend_ratio = std::min(1.0f, movenum / (0.6f * num_intersections));
         auto blended_resign_threshold = blend_ratio * resign_threshold
             + (1 - blend_ratio) * handicap_resign_threshold;
-        if (bestscore > blended_resign_threshold) {
+        if (besteval > blended_resign_threshold) {
             // Allow lower eval for white in handicap games
             // where opp may fumble.
             return false;
@@ -376,7 +422,7 @@ int UCTSearch::get_best_move(passflag_t passflag) {
     assert(first_child != nullptr);
 
     auto bestmove = first_child->get_move();
-    auto bestscore = first_child->get_eval(color);
+    auto besteval = first_child->first_visit() ? 0.5f : first_child->get_raw_eval(color);
 
     // do we want to fiddle with the best move because of the rule set?
     if (passflag & UCTSearch::NOPASS) {
@@ -388,16 +434,17 @@ int UCTSearch::get_best_move(passflag_t passflag) {
                 myprintf("Preferring not to pass.\n");
                 bestmove = nopass->get_move();
                 if (nopass->first_visit()) {
-                    bestscore = 1.0f;
+                    besteval = 1.0f;
                 } else {
-                    bestscore = nopass->get_eval(color);
+                    besteval = nopass->get_raw_eval(color);
                 }
             } else {
                 myprintf("Pass is the only acceptable move.\n");
             }
         }
-    } else {
-        if (!cfg_dumbpass && bestmove == FastBoard::PASS) {
+    } else if (!cfg_dumbpass) {
+        const auto relative_score = (color == FastBoard::BLACK ? 1 : -1) * m_rootstate.final_score();
+        if (bestmove == FastBoard::PASS) {
             // Either by forcing or coincidence passing is
             // on top...check whether passing loses instantly
             // do full count including dead stones.
@@ -416,11 +463,9 @@ int UCTSearch::get_best_move(passflag_t passflag) {
             // heuristic so the engine can "clean up" the board. It will still
             // only clean up the bare necessity to win. For full dead stone
             // removal, kgs-genmove_cleanup and the NOPASS mode must be used.
-            float score = m_rootstate.final_score();
+
             // Do we lose by passing?
-            if ((score > 0.0f && color == FastBoard::WHITE)
-                ||
-                (score < 0.0f && color == FastBoard::BLACK)) {
+            if (relative_score < 0.0f) {
                 myprintf("Passing loses :-(\n");
                 // Find a valid non-pass move.
                 UCTNode * nopass = m_root->get_nopass_child(m_rootstate);
@@ -428,39 +473,56 @@ int UCTSearch::get_best_move(passflag_t passflag) {
                     myprintf("Avoiding pass because it loses.\n");
                     bestmove = nopass->get_move();
                     if (nopass->first_visit()) {
-                        bestscore = 1.0f;
+                        besteval = 1.0f;
                     } else {
-                        bestscore = nopass->get_eval(color);
+                        besteval = nopass->get_raw_eval(color);
                     }
                 } else {
                     myprintf("No alternative to passing.\n");
                 }
-            } else {
+            } else if (relative_score > 0.0f) {
                 myprintf("Passing wins :-)\n");
+            } else {
+                myprintf("Passing draws :-|\n");
+                // Find a valid non-pass move.
+                const auto nopass = m_root->get_nopass_child(m_rootstate);
+                if (nopass != nullptr && !nopass->first_visit()) {
+                    const auto nopass_eval = nopass->get_raw_eval(color);
+                    if (nopass_eval > 0.5f) {
+                        myprintf("Avoiding pass because there could be a winning alternative.\n");
+                        bestmove = nopass->get_move();
+                        besteval = nopass_eval;
+                    }
+                }
+                if (bestmove == FastBoard::PASS) {
+                    myprintf("No seemingly better alternative to passing.\n");
+                }
             }
-        } else if (!cfg_dumbpass
-                   && m_rootstate.get_last_move() == FastBoard::PASS) {
+        } else if (m_rootstate.get_last_move() == FastBoard::PASS) {
             // Opponents last move was passing.
             // We didn't consider passing. Should we have and
             // end the game immediately?
-            float score = m_rootstate.final_score();
+
             // do we lose by passing?
-            if ((score > 0.0f && color == FastBoard::WHITE)
-                ||
-                (score < 0.0f && color == FastBoard::BLACK)) {
+            if (relative_score < 0.0f) {
                 myprintf("Passing loses, I'll play on.\n");
-            } else {
+            } else if (relative_score > 0.0f) {
                 myprintf("Passing wins, I'll pass out.\n");
                 bestmove = FastBoard::PASS;
+            } else {
+                myprintf("Passing draws, make it depend on evaluation.\n");
+                if (besteval < 0.5f) {
+                    bestmove = FastBoard::PASS;
+                }
             }
         }
     }
 
     // if we aren't passing, should we consider resigning?
     if (bestmove != FastBoard::PASS) {
-        if (should_resign(passflag, bestscore)) {
+        if (should_resign(passflag, besteval)) {
             myprintf("Eval (%.2f%%) looks bad. Resigning.\n",
-                     100.0f * bestscore);
+                     100.0f * besteval);
             bestmove = FastBoard::RESIGN;
         }
     }
@@ -498,7 +560,7 @@ void UCTSearch::dump_analysis(int playouts) {
     int color = tempstate.board.get_to_move();
 
     std::string pvstring = get_pv(tempstate, *m_root);
-    float winrate = 100.0f * m_root->get_pure_eval(color);
+    float winrate = 100.0f * m_root->get_raw_eval(color);
     myprintf("Playouts: %d, Win: %5.2f%%, PV: %s\n",
              playouts, winrate, pvstring.c_str());
 }
@@ -524,7 +586,7 @@ int UCTSearch::est_playouts_left(int elapsed_centis, int time_for_move) const {
                     static_cast<int>(std::ceil(playout_rate * time_left)));
 }
 
-size_t UCTSearch::prune_noncontenders(int elapsed_centis, int time_for_move) {
+size_t UCTSearch::prune_noncontenders(int elapsed_centis, int time_for_move, bool prune) {
     auto Nfirst = 0;
     // There are no cases where the root's children vector gets modified
     // during a multithreaded search, so it is safe to walk it here without
@@ -542,7 +604,9 @@ size_t UCTSearch::prune_noncontenders(int elapsed_centis, int time_for_move) {
             const auto has_enough_visits =
                 node->get_visits() >= min_required_visits;
 
-            node->set_active(has_enough_visits);
+            if (prune) {
+                node->set_active(has_enough_visits);
+            }
             if (!has_enough_visits) {
                 ++pruned_nodes;
             }
@@ -557,7 +621,9 @@ bool UCTSearch::have_alternate_moves(int elapsed_centis, int time_for_move) {
     if (cfg_timemanage == TimeManagement::OFF) {
         return true;
     }
-    auto pruned = prune_noncontenders(elapsed_centis, time_for_move);
+    // For self play use. Disables pruning of non-contenders to not bias the training data.
+    auto prune = cfg_timemanage != TimeManagement::NO_PRUNING;
+    auto pruned = prune_noncontenders(elapsed_centis, time_for_move, prune);
     if (pruned < m_root->get_children().size() - 1) {
         return true;
     }
@@ -616,15 +682,16 @@ int UCTSearch::think(int color, passflag_t passflag) {
     // set side to move
     m_rootstate.board.set_to_move(color);
 
-    m_rootstate.get_timecontrol().set_boardsize(
-        m_rootstate.board.get_boardsize());
-    auto time_for_move = m_rootstate.get_timecontrol().max_time_for_move(color, m_rootstate.get_movenum());
+    auto time_for_move =
+        m_rootstate.get_timecontrol().max_time_for_move(
+            m_rootstate.board.get_boardsize(),
+            color, m_rootstate.get_movenum());
 
     myprintf("Thinking at most %.1f seconds...\n", time_for_move/100.0f);
 
     // create a sorted list of legal moves (make sure we
     // play something legal and decent even in time trouble)
-    m_root->prepare_root_node(color, m_nodes, m_rootstate);
+    m_root->prepare_root_node(m_network, color, m_nodes, m_rootstate);
 
     m_run = true;
     int cpus = cfg_num_threads;
@@ -681,7 +748,7 @@ int UCTSearch::think(int color, passflag_t passflag) {
     // display search info
     myprintf("\n");
     dump_stats(m_rootstate, *m_root);
-    Training::record(m_rootstate, *m_root);
+    Training::record(m_network, m_rootstate, *m_root);
 
     Time elapsed;
     int elapsed_centis = Time::timediff_centis(start, elapsed);
@@ -702,7 +769,7 @@ int UCTSearch::think(int color, passflag_t passflag) {
 void UCTSearch::ponder() {
     update_root();
 
-    m_root->prepare_root_node(m_rootstate.board.get_to_move(),
+    m_root->prepare_root_node(m_network, m_rootstate.board.get_to_move(),
                               m_nodes, m_rootstate);
 
     m_run = true;
