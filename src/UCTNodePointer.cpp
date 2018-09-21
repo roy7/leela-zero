@@ -132,18 +132,6 @@ float UCTNodePointer::get_ucb_binomial(int color) const {
     return read_ptr(v)->get_ucb_binomial(color);
 }
 
-float UCTNodePointer::get_lcb_normal(int color) const {
-    assert(is_inflated());
-    auto v = m_data.load();
-    return read_ptr(v)->get_lcb_normal(color);
-}
-
-float UCTNodePointer::get_ucb_normal(int color) const {
-    assert(is_inflated());
-    auto v = m_data.load();
-    return read_ptr(v)->get_ucb_normal(color);
-}
-
 float UCTNodePointer::get_policy() const {
     auto v = m_data.load();
     if (is_inflated(v)) return read_ptr(v)->get_policy();

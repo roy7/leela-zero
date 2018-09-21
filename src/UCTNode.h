@@ -70,9 +70,6 @@ public:
     float get_net_eval(int tomove) const;
     float get_lcb_binomial(int color) const;
     float get_ucb_binomial(int color) const;
-    float get_lcb_normal(int color);
-    float get_ucb_normal(int color);
-    double get_variance();
     void virtual_loss();
     void virtual_loss_undo();
     void update(float eval);
