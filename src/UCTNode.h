@@ -141,6 +141,7 @@ private:
     std::vector<UCTNodePointer> m_children;
 
     // For Normal distribution confidence intervals
+    SMP::Mutex m_nodemutex;
     std::atomic<double> m_variance{0.0};
 
     //  m_expand_state manipulation methods

@@ -172,7 +172,7 @@ void UCTNode::virtual_loss_undo() {
 }
 
 void UCTNode::update(float eval) {
-    LOCK(get_mutex(), lock);
+    LOCK(m_nodemutex, lock);
 
     if (get_visits()) {
         const auto delta = eval - get_blackevals() / get_visits();
@@ -261,7 +261,7 @@ float UCTNode::get_ucb_normal(int color) {
 }
 
 double UCTNode::get_variance() {
-    LOCK(get_mutex(), lock);
+    LOCK(m_nodemutex, lock);
 
     return get_visits() > 1 ? m_variance / (get_visits() - 1) : 0;
 }
