@@ -745,6 +745,16 @@ Network::Netresult Network::get_output(
                     tmpresult.policy[idx] / static_cast<float>(NUM_SYMMETRIES);
             }
         }
+
+        // Replace this with an online version so get_output_internal only called once per sym?
+        //
+        for (auto sym = 0; sym < NUM_SYMMETRIES; ++sym) {
+            auto tmpresult = get_output_internal(state, sym);
+            result.variance += pow(tmpresult.winrate - result.winrate, 2.0f);
+        }
+
+        assert(NUM_SYMMETRIES > 1);
+        result.variance = result.variance / (NUM_SYMMETRIES - 1);
     } else {
         assert(ensemble == RANDOM_SYMMETRY);
         assert(symmetry == -1);
@@ -861,6 +871,7 @@ void Network::show_heatmap(const FastState* const state,
     const auto pass_policy = int(result.policy_pass * 1000);
     myprintf("pass: %d\n", pass_policy);
     myprintf("winrate: %f\n", result.winrate);
+    if (result.variance > 0.000001f) myprintf("variance: %f\n", result.variance);
 
     if (topmoves) {
         std::vector<Network::PolicyVertexPair> moves;
