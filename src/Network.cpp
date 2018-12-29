@@ -734,9 +734,13 @@ Network::Netresult Network::get_output(
         result = get_output_internal(state, symmetry);
     } else if (ensemble == AVERAGE) {
         for (auto sym = 0; sym < NUM_SYMMETRIES; ++sym) {
+            // Welford's Online algorithm where count = sym+1 and mean = result.winrate and newValue = tmpresult.winrate
             auto tmpresult = get_output_internal(state, sym);
-            result.winrate +=
-                tmpresult.winrate / static_cast<float>(NUM_SYMMETRIES);
+            float delta = tmpresult.winrate - result.winrate;
+            result.winrate += delta / (static_cast<float>(sym) + 1.0f);
+            float delta2 = tmpresult.winrate - result.winrate;
+            result.variance += delta * delta2;
+
             result.policy_pass +=
                 tmpresult.policy_pass / static_cast<float>(NUM_SYMMETRIES);
 
@@ -746,15 +750,11 @@ Network::Netresult Network::get_output(
             }
         }
 
-        // Replace this with an online version so get_output_internal only called once per sym?
-        //
-        for (auto sym = 0; sym < NUM_SYMMETRIES; ++sym) {
-            auto tmpresult = get_output_internal(state, sym);
-            result.variance += pow(tmpresult.winrate - result.winrate, 2.0f);
+        // Instead of an assert fail, lets leave variance = 0.0f for applications without symmetry?
+        if (NUM_SYMMETRIES > 1) {
+            // Sample variance is count - 1
+            result.variance = result.variance / (static_cast<float>(NUM_SYMMETRIES) - 1.0f);
         }
-
-        assert(NUM_SYMMETRIES > 1);
-        result.variance = result.variance / (NUM_SYMMETRIES - 1);
     } else {
         assert(ensemble == RANDOM_SYMMETRY);
         assert(symmetry == -1);
