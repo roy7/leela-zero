@@ -871,7 +871,14 @@ void Network::show_heatmap(const FastState* const state,
     const auto pass_policy = int(result.policy_pass * 1000);
     myprintf("pass: %d\n", pass_policy);
     myprintf("winrate: %f\n", result.winrate);
-    if (result.variance > 0.000001f) myprintf("variance: %f\n", result.variance);
+    if (result.variance > 0.000001f) {
+        myprintf("variance: %f\n", result.variance);
+
+        myprintf("Beta(%f, %f)\n",
+            result.winrate * ( (result.winrate * (1.0f - result.winrate) )/result.variance - 1.0f),
+            (1.0f - result.winrate) * ( (result.winrate * (1.0f - result.winrate) )/result.variance - 1.0f)
+        );
+    }
 
     if (topmoves) {
         std::vector<Network::PolicyVertexPair> moves;
