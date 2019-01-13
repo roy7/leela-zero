@@ -269,11 +269,22 @@ void UCTSearch::dump_stats(FastState & state, UCTNode & parent) {
         tmpstate.play_move(node->get_move());
         std::string pv = move + " " + get_pv(tmpstate, *node);
 
-        myprintf("%4s -> %7d (V: %5.2f%%) (N: %5.2f%%) PV: %s\n",
+        float alpha = 0.0f;
+        float beta = 0.0f;
+
+        if (node->get_net_variance()) {
+            alpha = node->get_net_eval(color) * ( (node->get_net_eval(color) * (1.0f - node->get_net_eval(color)) )/node->get_net_variance() - 1.0f);
+            beta = (1.0f - node->get_net_eval(color)) * ( (node->get_net_eval(color) * (1.0f - node->get_net_eval(color)) )/node->get_net_variance() - 1.0f);
+        }
+
+        myprintf("%4s -> %7d (V: %5.2f%%) (N: %5.2f%%) (Eval: %5.2f%%) Beta(%.2f, %.2f) PV: %s\n",
             move.c_str(),
             node->get_visits(),
             node->get_visits() ? node->get_raw_eval(color)*100.0f : 0.0f,
             node->get_policy() * 100.0f,
+            node->get_net_eval(color)*100.0f,
+            alpha,
+            beta,
             pv.c_str());
     }
     tree_stats(parent);

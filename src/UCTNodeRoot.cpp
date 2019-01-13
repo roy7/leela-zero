@@ -192,6 +192,11 @@ void UCTNode::prepare_root_node(Network & network, int color,
         root_eval = (color == FastBoard::BLACK ? root_eval : 1.0f - root_eval);
     }
     Utils::myprintf("NN eval=%f\n", root_eval);
+    if (get_net_variance()) {
+        float alpha = root_eval * ( (root_eval * (1.0f - root_eval) )/get_net_variance() - 1.0f);
+        float beta = (1.0f - root_eval) * ( (root_eval * (1.0f - root_eval) )/get_net_variance() - 1.0f);
+        Utils::myprintf("Beta(%f, %f)\n", alpha, beta);
+    }
 
     // There are a lot of special cases where code assumes
     // all children of the root are inflated, so do that.

@@ -68,11 +68,14 @@ bool UCTNode::create_children(Network & network,
         return false;
     }
 
+    //const auto raw_netlist = network.get_output(
+    //    &state, Network::Ensemble::RANDOM_SYMMETRY);
     const auto raw_netlist = network.get_output(
-        &state, Network::Ensemble::RANDOM_SYMMETRY);
+        &state, Network::Ensemble::AVERAGE);
 
     // DCNN returns winrate as side to move
     m_net_eval = raw_netlist.winrate;
+    m_net_variance = raw_netlist.variance;
     const auto to_move = state.board.get_to_move();
     // our search functions evaluate from black's point of view
     if (state.board.white_to_move()) {
@@ -226,6 +229,10 @@ float UCTNode::get_net_eval(int tomove) const {
         return 1.0f - m_net_eval;
     }
     return m_net_eval;
+}
+
+float UCTNode::get_net_variance() const {
+    return m_net_variance;
 }
 
 double UCTNode::get_blackevals() const {
