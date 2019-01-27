@@ -87,7 +87,9 @@ the compilation instructions below and then read the [Usage](#usage-for-playing-
 https://github.com/KhronosGroup/OpenCL-Headers/tree/master/CL)
 * OpenCL ICD loader (ocl-icd-libopencl1 on Debian/Ubuntu, or reference implementation at https://github.com/KhronosGroup/OpenCL-ICD-Loader)
 * An OpenCL capable device, preferably a very, very fast GPU, with recent
-drivers is strongly recommended (OpenCL 1.1 support is enough).
+drivers is strongly recommended (OpenCL 1.1 support is enough). Don't
+forget to install the OpenCL driver if this part is packaged seperately
+by the Linux distribution (e.g. nvidia-opencl-icd).
 If you do not have a GPU, add the define "USE_CPU_ONLY", for example
 by adding -DUSE_CPU_ONLY=1 to the cmake command line.
 * Optional: BLAS Library: OpenBLAS (libopenblas-dev) or Intel MKL
@@ -124,7 +126,7 @@ by adding -DUSE_CPU_ONLY=1 to the cmake command line.
     git submodule update --init --recursive
 
     # Install build depedencies
-    brew install boost cmake
+    brew install boost cmake zlib
 
     # Use a stand alone build directory to keep source dir clean
     mkdir build && cd build
@@ -178,6 +180,10 @@ capability.
 [LeelaSabaki](https://github.com/SabakiHQ/LeelaSabaki) is modified to
 show variations and winning statistics in the game tree, as well as a heatmap
 on the game board.
+
+[GoReviewPartner](https://github.com/pnprog/goreviewpartner) is a tool for
+automated review and analysis of games using bots (saved as .rsgf files),
+Leela Zero is supported.
 
 A lot of go software can interface to an engine via GTP,
 so look around.
@@ -319,7 +325,7 @@ If interrupted, training can be resumed with:
 
 - [ ] Further optimize Winograd transformations.
 - [ ] Implement GPU batching.
-- [ ] GTP extention to exclude moves from analysis.
+- [ ] GTP extension to exclude moves from analysis.
 - [ ] Root filtering for handicap play.
 - More backends:
 - [ ] MKL-DNN based backend.
@@ -350,3 +356,14 @@ https://github.com/LeelaChessZero/lc0
 # License
 
 The code is released under the GPLv3 or later, except for ThreadPool.h, cl2.hpp, half.hpp and the eigen and clblast_level3 subdirs, which have specific licenses (compatible with GPLv3) mentioned in those files.
+
+Additional permission under GNU GPL version 3 section 7
+
+If you modify this Program, or any covered work, by linking or
+combining it with NVIDIA Corporation's libraries from the
+NVIDIA CUDA Toolkit and/or the NVIDIA CUDA Deep Neural
+Network library and/or the NVIDIA TensorRT inference library
+(or a modified version of those libraries), containing parts covered
+by the terms of the respective license agreement, the licensors of
+this Program grant you additional permission to convey the resulting
+work.
