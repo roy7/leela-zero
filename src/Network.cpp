@@ -744,9 +744,13 @@ Network::Netresult Network::get_output(
         result = get_output_internal(state, symmetry);
     } else if (ensemble == AVERAGE) {
         for (auto sym = 0; sym < NUM_SYMMETRIES; ++sym) {
+            // Welford's Online algorithm where count = sym+1 and mean = result.winrate and newValue = tmpresult.winrate
             auto tmpresult = get_output_internal(state, sym);
-            result.winrate +=
-                tmpresult.winrate / static_cast<float>(NUM_SYMMETRIES);
+            float delta = tmpresult.winrate - result.winrate;
+            result.winrate += delta / (static_cast<float>(sym) + 1.0f);
+            float delta2 = tmpresult.winrate - result.winrate;
+            result.variance += delta * delta2;
+
             result.policy_pass +=
                 tmpresult.policy_pass / static_cast<float>(NUM_SYMMETRIES);
 
@@ -754,6 +758,12 @@ Network::Netresult Network::get_output(
                 result.policy[idx] +=
                     tmpresult.policy[idx] / static_cast<float>(NUM_SYMMETRIES);
             }
+        }
+
+        // Instead of an assert fail, lets leave variance = 0.0f for applications without symmetry?
+        if (NUM_SYMMETRIES > 1) {
+            // Sample variance is count - 1
+            result.variance = result.variance / (static_cast<float>(NUM_SYMMETRIES) - 1.0f);
         }
     } else {
         assert(ensemble == RANDOM_SYMMETRY);
@@ -871,6 +881,14 @@ void Network::show_heatmap(const FastState* const state,
     const auto pass_policy = int(result.policy_pass * 1000);
     myprintf("pass: %d\n", pass_policy);
     myprintf("winrate: %f\n", result.winrate);
+    if (result.variance > 0.000001f) {
+        myprintf("variance: %f\n", result.variance);
+
+        myprintf("Beta(%f, %f)\n",
+            result.winrate * ( (result.winrate * (1.0f - result.winrate) )/result.variance - 1.0f),
+            (1.0f - result.winrate) * ( (result.winrate * (1.0f - result.winrate) )/result.variance - 1.0f)
+        );
+    }
 
     if (topmoves) {
         std::vector<Network::PolicyVertexPair> moves;

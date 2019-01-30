@@ -57,7 +57,10 @@ public:
         // winrate
         float winrate;
 
-        Netresult() : policy_pass(0.0f), winrate(0.0f) {
+        // variance
+        float variance;
+
+        Netresult() : policy_pass(0.0f), winrate(0.0f), variance(0.0f) {
             policy.fill(0.0f);
         }
     };
