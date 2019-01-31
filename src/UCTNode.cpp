@@ -248,6 +248,17 @@ std::pair<float, float> UCTNode::get_beta_param(int tomove) const {
     }
     auto success = blackeval;
     auto failure = visits - blackeval;
+
+    if (get_net_variance()) {
+        if (tomove == FastBoard::BLACK) {
+            success += get_net_eval(tomove) * ( (get_net_eval(tomove) * (1.0f - get_net_eval(tomove)) )/get_net_variance() - 1.0f);
+            failure += (1.0f - get_net_eval(tomove)) * ( (get_net_eval(tomove) * (1.0f - get_net_eval(tomove)) )/get_net_variance() - 1.0f);
+        } else {
+            failure += get_net_eval(tomove) * ( (get_net_eval(tomove) * (1.0f - get_net_eval(tomove)) )/get_net_variance() - 1.0f);
+            success += (1.0f - get_net_eval(tomove)) * ( (get_net_eval(tomove) * (1.0f - get_net_eval(tomove)) )/get_net_variance() - 1.0f);
+        }
+    }
+
     assert(failure >= 0.0f);
     if (tomove == FastBoard::BLACK) {
         return {success, failure};
@@ -306,13 +317,19 @@ UCTNode* UCTNode::uct_select_child(int color, bool is_root) {
         if (child.get_visits()) {
             std::tie(success, failure) = child.get_beta_param(color);
         }
+
         success += cfg_beta_prior * policy_eval;
         failure += cfg_beta_prior * (1.0f - policy_eval);
 
         auto alpha = 1.0f + (success / cfg_puct);
         auto beta  = 1.0f + (failure / cfg_puct);
+
         boost::random::beta_distribution<float> dist(alpha, beta);
         auto value = dist(Random::get_Rng());
+
+        if (is_root && child.get_visits()) {
+            printf("Used %f,%f and got %f\n", success, failure, value);
+        }
 
         assert(value > std::numeric_limits<double>::lowest());
         if (value > best_value) {
@@ -321,6 +338,7 @@ UCTNode* UCTNode::uct_select_child(int color, bool is_root) {
         }
     }
 
+    if (is_root) printf("--\n");
     assert(best != nullptr);
     best->inflate();
     return best->get();
