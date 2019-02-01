@@ -313,6 +313,7 @@ UCTNode* UCTNode::uct_select_child(int color, bool is_root) {
 
         auto success = 0.0f;
         auto failure = 0.0f;
+
         if (child.get_visits()) {
             std::tie(success, failure) = child.get_beta_param(color);
         }
