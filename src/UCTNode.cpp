@@ -308,6 +308,18 @@ UCTNode* UCTNode::uct_select_child(int color, bool is_root) {
         auto psa = child.get_policy();
         auto policy_ratio = max_policy / psa;
         auto fpu_reduction = (is_root ? cfg_fpu_root_reduction : cfg_fpu_reduction) * std::sqrt(policy_ratio);
+
+        if (child.is_inflated() && child->m_expand_state.load() == ExpandState::EXPANDING) {
+            // Someone else is expanding this node, never select it
+            // if we can avoid doing so, because we'd block on it.
+            if (-1.0f - fpu_reduction > best_value) {
+                best_value = -1.0f - fpu_reduction;
+                best = &child;
+            }
+
+            continue;
+        }
+
         auto fpu_eval = get_net_eval(color) - fpu_reduction;
         fpu_eval = std::max(0.0f, fpu_eval);
 
@@ -329,12 +341,6 @@ UCTNode* UCTNode::uct_select_child(int color, bool is_root) {
 
         if (is_root && child.get_visits()) {
             printf("Used %f,%f and got %f\n", success, failure, value);
-        }
-
-        if (child.is_inflated() && child->m_expand_state.load() == ExpandState::EXPANDING) {
-            // Someone else is expanding this node, never select it
-            // if we can avoid so, because we'd block on it.
-            value = -1.0f - fpu_reduction;
         }
 
         assert(value > std::numeric_limits<double>::lowest());
