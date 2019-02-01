@@ -340,7 +340,8 @@ UCTNode* UCTNode::uct_select_child(int color, bool is_root) {
         auto value = dist(Random::get_Rng());
 
         if (is_root && child.get_visits()) {
-            printf("Used %f,%f and got %f\n", success, failure, value);
+            //printf("Used %f,%f and got %f\n", success, failure, value);
+            printf("Used %f,%f and got %f\n", alpha, beta, value);
         }
 
         assert(value > std::numeric_limits<double>::lowest());
