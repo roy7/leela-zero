@@ -1,6 +1,6 @@
 /*
     This file is part of Leela Zero.
-    Copyright (C) 2017-2018 Gian-Carlo Pascutto and contributors
+    Copyright (C) 2017-2019 Gian-Carlo Pascutto and contributors
 
     Leela Zero is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -14,6 +14,17 @@
 
     You should have received a copy of the GNU General Public License
     along with Leela Zero.  If not, see <http://www.gnu.org/licenses/>.
+
+    Additional permission under GNU GPL version 3 section 7
+
+    If you modify this Program, or any covered work, by linking or
+    combining it with NVIDIA Corporation's libraries from the
+    NVIDIA CUDA Toolkit and/or the NVIDIA CUDA Deep Neural
+    Network library and/or the NVIDIA TensorRT inference library
+    (or a modified version of those libraries), containing parts covered
+    by the terms of the respective license agreement, the licensors of
+    this Program grant you additional permission to convey the resulting
+    work.
 */
 
 #include "config.h"
@@ -44,7 +55,7 @@ void SGFTree::init_state() {
     // Initialize with defaults.
     // The SGF might be missing boardsize or komi
     // which means we'll never initialize properly.
-    m_state.init_game(std::min(BOARD_SIZE, 19), 7.5f);
+    m_state.init_game(std::min(BOARD_SIZE, 19), KOMI);
 }
 
 const KoState * SGFTree::get_state(void) const {
@@ -141,8 +152,8 @@ void SGFTree::populate_states() {
         int bsize;
         strm >> bsize;
         if (bsize == BOARD_SIZE) {
-            // Assume 7.5 komi if not specified
-            m_state.init_game(bsize, 7.5f);
+            // Assume default komi in config.h if not specified
+            m_state.init_game(bsize, KOMI);
             valid_size = true;
         } else {
             throw std::runtime_error("Board size not supported.");
