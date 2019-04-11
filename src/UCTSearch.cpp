@@ -31,6 +31,7 @@
 #include "UCTSearch.h"
 
 #include <boost/format.hpp>
+#include <boost/math/distributions/beta.hpp>
 #include <cassert>
 #include <cmath>
 #include <cstddef>
@@ -286,7 +287,11 @@ void UCTSearch::dump_stats(FastState & state, UCTNode & parent) {
         float failure = 0.0f;
         std::tie(success, failure) = node->get_beta_param(color);
 
-        myprintf("%4s -> %7d (V: %5.2f%%) (N: %5.2f%%) (Eval: %5.2f%%) Beta(%.2f, %.2f) PV: %s\n",
+        boost::math::beta_distribution<float> dist(success, failure);
+        float beta_left = boost::math::quantile(boost::math::complement(dist, .95));
+        float beta_right = boost::math::quantile(boost::math::complement(dist, .05));
+
+        myprintf("%4s -> %7d (V: %5.2f%%) (N: %5.2f%%) (Eval: %5.2f%%) Beta(%.2f, %.2f)=%.2f..%.2f PV: %s\n",
             move.c_str(),
             node->get_visits(),
             node->get_visits() ? node->get_raw_eval(color)*100.0f : 0.0f,
@@ -294,6 +299,8 @@ void UCTSearch::dump_stats(FastState & state, UCTNode & parent) {
             node->get_net_eval(color)*100.0f,
             success,
             failure,
+            beta_left * 100.0f,
+            beta_right * 100.0f,
             pv.c_str());
     }
     tree_stats(parent);
