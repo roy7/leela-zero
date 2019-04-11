@@ -1,5 +1,6 @@
 [![Linux Build Status](https://travis-ci.org/leela-zero/leela-zero.svg?branch=next)](https://travis-ci.org/leela-zero/leela-zero)
-[![Windows Build Status](https://ci.appveyor.com/api/projects/status/dcvp31x1e0yavrtf/branch/next?svg=true)](https://ci.appveyor.com/project/gcp/leela-zero-8arv1/branch/next)
+[![Windows Build Status](https://ci.appveyor.com/api/projects/status/pf1hcgly8f1a8iu0/branch/next?svg=true)](https://ci.appveyor.com/project/leela-zero/leela-zero/branch/next)
+
 
 # What
 
@@ -323,7 +324,7 @@ If interrupted, training can be resumed with:
 # Todo
 
 - [ ] Further optimize Winograd transformations.
-- [ ] Implement GPU batching in the search.
+- [ ] Improve GPU batching in the search.
 - [ ] Root filtering for handicap play.
 - More backends:
 - [ ] MKL-DNN based backend.

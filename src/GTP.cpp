@@ -90,6 +90,8 @@ float cfg_softmax_temp;
 float cfg_fpu_reduction;
 float cfg_fpu_root_reduction;
 float cfg_beta_prior;
+float cfg_ci_alpha;
+float cfg_lcb_min_visit_ratio;
 std::string cfg_weightsfile;
 std::string cfg_logfile;
 FILE* cfg_logfile_handle;
@@ -317,9 +319,9 @@ void GTP::setup_default_parameters() {
     cfg_allow_pondering = true;
 
     // we will re-calculate this on Leela.cpp
-    cfg_num_threads = 0;
+    cfg_num_threads = 1;
     // we will re-calculate this on Leela.cpp
-    cfg_batch_size = 0;
+    cfg_batch_size = 1;
 
     cfg_max_memory = UCTSearch::DEFAULT_MAX_MEMORY;
     cfg_max_playouts = UCTSearch::UNLIMITED_PLAYOUTS;
@@ -347,6 +349,8 @@ void GTP::setup_default_parameters() {
     cfg_resignpct = -1;
     cfg_noise = false;
     cfg_fpu_root_reduction = cfg_fpu_reduction;
+    cfg_ci_alpha = 1e-5f;
+    cfg_lcb_min_visit_ratio = 0.10f;
     cfg_random_cnt = 0;
     cfg_random_min_visits = 1;
     cfg_random_temp = 1.0f;
@@ -577,7 +581,7 @@ void GTP::execute(GameState & game, const std::string& xinput) {
     } else if (command.find("komi") == 0) {
         std::istringstream cmdstream(command);
         std::string tmp;
-        float komi = 7.5f;
+        float komi = KOMI;
         float old_komi = game.get_komi();
 
         cmdstream >> tmp;  // eat komi
@@ -858,8 +862,7 @@ void GTP::execute(GameState & game, const std::string& xinput) {
             }
         } else if (symmetry == "average" || symmetry == "avg") {
             vec = s_network->get_output(
-                &game, Network::Ensemble::AVERAGE,
-                Network::NUM_SYMMETRIES, false);
+                &game, Network::Ensemble::AVERAGE, -1, false);
         } else {
             vec = s_network->get_output(
                 &game, Network::Ensemble::DIRECT, std::stoi(symmetry), false);
