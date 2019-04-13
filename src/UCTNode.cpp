@@ -395,7 +395,6 @@ UCTNode* UCTNode::uct_select_child(int color, bool is_root) {
         }
     }
 
-    if (is_root) printf("--\n");
     assert(best != nullptr);
     best->inflate();
     return best->get();
