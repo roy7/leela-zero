@@ -341,6 +341,9 @@ void GTP::setup_default_parameters() {
     cfg_precision = precision_t::AUTO;
 #endif
 #endif
+    cfg_puct = 0.5f;
+    cfg_logpuct = 0.015f;
+    cfg_logconst = 1.7f;
     cfg_softmax_temp = 1.0f;
     cfg_puct = 0.1f;
     cfg_fpu_reduction = 0.015f;
