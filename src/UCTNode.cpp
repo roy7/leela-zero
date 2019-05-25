@@ -297,17 +297,18 @@ std::pair<float, float> UCTNode::get_beta_param(int tomove) const {
     if (tomove == FastBoard::WHITE) {
         blackeval += static_cast<double>(virtual_loss);
     }
-    auto success = blackeval;
-    auto failure = visits - blackeval;
+    //auto success = blackeval;
+    //auto failure = visits - blackeval;
+    auto success = 1.0f;
+    auto failure = 1.0f;
+    auto variance = get_net_variance() ? get_net_variance() : .000000001;
 
-    if (get_net_variance()) {
-        if (tomove == FastBoard::BLACK) {
-            success += get_net_eval(tomove) * ( (get_net_eval(tomove) * (1.0f - get_net_eval(tomove)) )/get_net_variance() - 1.0f);
-            failure += (1.0f - get_net_eval(tomove)) * ( (get_net_eval(tomove) * (1.0f - get_net_eval(tomove)) )/get_net_variance() - 1.0f);
-        } else {
-            failure += get_net_eval(tomove) * ( (get_net_eval(tomove) * (1.0f - get_net_eval(tomove)) )/get_net_variance() - 1.0f);
-            success += (1.0f - get_net_eval(tomove)) * ( (get_net_eval(tomove) * (1.0f - get_net_eval(tomove)) )/get_net_variance() - 1.0f);
-        }
+    if (tomove == FastBoard::BLACK) {
+        success += get_net_eval(tomove) * ( (get_net_eval(tomove) * (1.0f - get_net_eval(tomove)) )/variance - 1.0f);
+        failure += (1.0f - get_net_eval(tomove)) * ( (get_net_eval(tomove) * (1.0f - get_net_eval(tomove)) )/variance - 1.0f);
+    } else {
+        failure += get_net_eval(tomove) * ( (get_net_eval(tomove) * (1.0f - get_net_eval(tomove)) )/variance - 1.0f);
+        success += (1.0f - get_net_eval(tomove)) * ( (get_net_eval(tomove) * (1.0f - get_net_eval(tomove)) )/variance - 1.0f);
     }
 
     assert(failure >= 0.0f);
@@ -374,16 +375,22 @@ UCTNode* UCTNode::uct_select_child(int color, bool is_root) {
         auto fpu_eval = get_net_eval(color) - fpu_reduction;
         fpu_eval = std::max(0.0f, fpu_eval);
 
-        auto success = 0.0f;
-        auto failure = 0.0f;
+        auto success = 1.0f;
+        auto failure = 1.0f;
+
         if (child.get_visits()) {
             std::tie(success, failure) = child.get_beta_param(color);
         }
-        success += cfg_beta_prior * fpu_eval;
-        failure += cfg_beta_prior * (1.0f - fpu_eval);
 
-        auto alpha = 1.0f + (success / cfg_puct);
-        auto beta  = 1.0f + (failure / cfg_puct);
+        //success += cfg_beta_prior * fpu_eval;
+        //failure += cfg_beta_prior * (1.0f - fpu_eval);
+
+        //auto alpha = 1.0f + (success / cfg_puct);
+        //auto beta  = 1.0f + (failure / cfg_puct);
+        //auto alpha = 1.0f + success;
+        //auto beta = 1.0f + failure;
+        auto alpha = success;
+        auto beta = failure;
 
         boost::random::beta_distribution<float> dist(alpha, beta);
         auto value = dist(Random::get_Rng());
