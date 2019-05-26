@@ -338,7 +338,10 @@ UCTNode* UCTNode::uct_select_child(int color, bool is_root) {
 
     boost::random::uniform_real_distribution<> uniform_dist(0, 1);
 
-    for (const auto& child : m_children) {
+    auto best = static_cast<UCTNodePointer*>(nullptr);
+    auto best_value = std::numeric_limits<double>::lowest();
+
+    for (auto& child : m_children) {
         if (!child.valid()) {
             continue;
         }
@@ -348,6 +351,14 @@ UCTNode* UCTNode::uct_select_child(int color, bool is_root) {
             policy_explored += child.get_policy();
         } else {
             num_unexplored_children++;
+
+            if (best != nullptr || (child.is_inflated() && child->m_expand_state.load() == ExpandState::EXPANDING)) {
+                continue;
+            }
+
+            // Unexplored children should still be sorted by policy from original sort when created
+            // Store earliest unexplored child in the list, in case we decide to explore later
+            best = &child;
         }
     }
 
@@ -355,14 +366,9 @@ UCTNode* UCTNode::uct_select_child(int color, bool is_root) {
     if (!num_unexplored_children) {
         policy_explored = 1.00f;
     }
-    printf("%d children left to explore. %f.3%% policy explored.\n", num_unexplored_children, policy_explored);
 
-    // Estimated eval for unknown nodes = original parent NN eval - reduction
-    auto best = static_cast<UCTNodePointer*>(nullptr);
-    auto best_value = std::numeric_limits<double>::lowest();
-
-    for (auto& child : m_children) {
-        if (!child.active()) {
+    if (!best || uniform_dist(Random::get_Rng()) < policy_explored) for (auto& child : m_children) {
+        if (!child.active() || !child.get_visits()) {
             continue;
         }
 
@@ -373,7 +379,6 @@ UCTNode* UCTNode::uct_select_child(int color, bool is_root) {
         if (child.is_inflated() && child->m_expand_state.load() == ExpandState::EXPANDING) {
             // Someone else is expanding this node, never select it
             // if we can avoid doing so, because we'd block on it.
-            //if (-1.0f - fpu_reduction > best_value) {
             if (-1.0f > best_value) {
                 best_value = -1.0f;
                 best = &child;
