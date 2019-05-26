@@ -302,7 +302,6 @@ std::pair<float, float> UCTNode::get_beta_param(int tomove) const {
         success += (1.0f - get_net_eval(tomove)) * ( (get_net_eval(tomove) * (1.0f - get_net_eval(tomove)) )/variance - 1.0f);
     }
 
-    assert(failure >= 0.0f);
     if (tomove == FastBoard::BLACK) {
         return {success, failure};
     } else {
@@ -333,9 +332,15 @@ UCTNode* UCTNode::uct_select_child(int color, bool is_root) {
     wait_expanded();
 
     auto max_policy = 0.0f;
+    auto policy_explored = 0.0f;
+
     for (const auto& child : m_children) {
         if (child.valid()) {
             max_policy = std::max(max_policy, child.get_policy());
+        }
+
+        if (child.valid() && child.get_visits() > 0) {
+            policy_explored += child.get_policy();
         }
     }
 
