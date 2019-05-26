@@ -41,6 +41,7 @@
 #include <utility>
 #include <vector>
 #include <boost/random/beta_distribution.hpp>
+#include <boost/random/uniform_real_distribution.hpp>
 
 #include "UCTNode.h"
 #include "FastBoard.h"
@@ -333,16 +334,28 @@ UCTNode* UCTNode::uct_select_child(int color, bool is_root) {
 
     auto max_policy = 0.0f;
     auto policy_explored = 0.0f;
+    int num_unexplored_children = 0;
+
+    boost::random::uniform_real_distribution<> uniform_dist(0, 1);
 
     for (const auto& child : m_children) {
-        if (child.valid()) {
-            max_policy = std::max(max_policy, child.get_policy());
+        if (!child.valid()) {
+            continue;
         }
 
-        if (child.valid() && child.get_visits() > 0) {
+        max_policy = std::max(max_policy, child.get_policy());
+        if (child.get_visits() > 0) {
             policy_explored += child.get_policy();
+        } else {
+            num_unexplored_children++;
         }
     }
+
+    // Sanity check in case policy doesn't exect add up to 100.0 for each set of children?
+    if (!num_unexplored_children) {
+        policy_explored = 1.00f;
+    }
+    printf("%d children left to explore. %f.3%% policy explored.\n", num_unexplored_children, policy_explored);
 
     // Estimated eval for unknown nodes = original parent NN eval - reduction
     auto best = static_cast<UCTNodePointer*>(nullptr);
@@ -353,23 +366,24 @@ UCTNode* UCTNode::uct_select_child(int color, bool is_root) {
             continue;
         }
 
-        auto psa = child.get_policy();
-        auto policy_ratio = max_policy / psa;
-        auto fpu_reduction = (is_root ? cfg_fpu_root_reduction : cfg_fpu_reduction) * std::sqrt(policy_ratio);
+        //auto psa = child.get_policy();
+        //auto policy_ratio = max_policy / psa;
+        //auto fpu_reduction = (is_root ? cfg_fpu_root_reduction : cfg_fpu_reduction) * std::sqrt(policy_ratio);
 
         if (child.is_inflated() && child->m_expand_state.load() == ExpandState::EXPANDING) {
             // Someone else is expanding this node, never select it
             // if we can avoid doing so, because we'd block on it.
-            if (-1.0f - fpu_reduction > best_value) {
-                best_value = -1.0f - fpu_reduction;
+            //if (-1.0f - fpu_reduction > best_value) {
+            if (-1.0f > best_value) {
+                best_value = -1.0f;
                 best = &child;
             }
 
             continue;
         }
 
-        auto fpu_eval = get_net_eval(color) - fpu_reduction;
-        fpu_eval = std::max(0.0f, fpu_eval);
+        //auto fpu_eval = get_net_eval(color) - fpu_reduction;
+        //fpu_eval = std::max(0.0f, fpu_eval);
 
         auto success = 1.0f;
         auto failure = 1.0f;
@@ -385,10 +399,10 @@ UCTNode* UCTNode::uct_select_child(int color, bool is_root) {
         //auto beta  = 1.0f + (failure / cfg_puct);
         //auto alpha = 1.0f + success;
         //auto beta = 1.0f + failure;
-        auto alpha = success;
-        auto beta = failure;
+        //auto alpha = success;
+        //auto beta = failure;
 
-        boost::random::beta_distribution<float> dist(alpha, beta);
+        boost::random::beta_distribution<float> dist(success, failure);
         auto value = dist(Random::get_Rng());
 
         assert(value > std::numeric_limits<double>::lowest());
