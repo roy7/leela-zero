@@ -302,9 +302,15 @@ void UCTSearch::dump_stats(FastState & state, UCTNode & parent) {
         tmpstate.play_move(node->get_move());
         auto pv = move + " " + get_pv(tmpstate, *node);
 
-        float success = 0.0f;
-        float failure = 0.0f;
-        std::tie(success, failure) = node->get_beta_param(color);
+        float success, failure;
+
+        // In case of a move with 0 visits because of showing at least two moves
+        if (node->get_visits() > 0) {
+            std::tie(success, failure) = node->get_beta_param(color);
+        } else {
+            success = 1.0;
+            failure = 1.0;
+        }
 
         boost::math::beta_distribution<float> dist(success, failure);
         float beta_left = boost::math::quantile(boost::math::complement(dist, .95));
