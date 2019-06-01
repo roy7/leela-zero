@@ -435,6 +435,7 @@ public:
         auto a_visit = a.get_visits();
         auto b_visit = b.get_visits();
 
+/*
         // Need at least 2 visits for LCB.
         if (m_lcb_min_visits < 2) {
             m_lcb_min_visits = 2;
@@ -450,6 +451,7 @@ public:
                 return a_lcb < b_lcb;
             }
         }
+*/
 
         // if visits are not same, sort on visits
         if (a_visit != b_visit) {
