@@ -36,6 +36,7 @@
 #include <random>
 #include <utility>
 #include <vector>
+#include <boost/math/distributions/beta.hpp>
 
 #include "UCTNode.h"
 #include "FastBoard.h"
@@ -219,9 +220,14 @@ void UCTNode::prepare_root_node(Network & network, int color,
     }
     Utils::myprintf("NN eval=%f\n", root_eval);
     if (get_net_variance()) {
-        float alpha = root_eval * ( (root_eval * (1.0f - root_eval) )/get_net_variance() - 1.0f);
-        float beta = (1.0f - root_eval) * ( (root_eval * (1.0f - root_eval) )/get_net_variance() - 1.0f);
-        Utils::myprintf("Beta(%f, %f)\n", alpha, beta);
+        float success = root_eval * ( (root_eval * (1.0f - root_eval) )/get_net_variance() - 1.0f);
+        float failure = (1.0f - root_eval) * ( (root_eval * (1.0f - root_eval) )/get_net_variance() - 1.0f);
+
+        boost::math::beta_distribution<float> dist(success, failure);
+        float beta_left = boost::math::quantile(boost::math::complement(dist, .95));
+        float beta_right = boost::math::quantile(boost::math::complement(dist, .05));
+
+        Utils::myprintf("Beta(%f, %f)=%f..%f\n", success, failure, beta_left, beta_right);
     }
 
     // There are a lot of special cases where code assumes

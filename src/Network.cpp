@@ -40,6 +40,7 @@
 #include <boost/utility.hpp>
 #include <boost/format.hpp>
 #include <boost/spirit/home/x3.hpp>
+#include <boost/math/distributions/beta.hpp>
 #ifndef USE_BLAS
 #include <Eigen/Dense>
 #endif
@@ -892,9 +893,18 @@ void Network::show_heatmap(const FastState* const state,
     if (result.variance > 0.000001f) {
         myprintf("variance: %f\n", result.variance);
 
-        myprintf("Beta(%f, %f)\n",
-            result.winrate * ( (result.winrate * (1.0f - result.winrate) )/result.variance - 1.0f),
-            (1.0f - result.winrate) * ( (result.winrate * (1.0f - result.winrate) )/result.variance - 1.0f)
+        auto success = result.winrate * ( (result.winrate * (1.0f - result.winrate) )/result.variance - 1.0f);
+        auto failure = (1.0f - result.winrate) * ( (result.winrate * (1.0f - result.winrate) )/result.variance - 1.0f);
+
+        boost::math::beta_distribution<float> dist(success, failure);
+        float beta_left = boost::math::quantile(boost::math::complement(dist, .95));
+        float beta_right = boost::math::quantile(boost::math::complement(dist, .05));
+
+        myprintf("Beta(%f, %f)=%f..%f\n",
+            success,
+            failure,
+            beta_left,
+            beta_right
         );
     }
 
