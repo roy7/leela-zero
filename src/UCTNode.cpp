@@ -40,7 +40,6 @@
 #include <numeric>
 #include <utility>
 #include <vector>
-#include <boost/random/beta_distribution.hpp>
 #include <boost/random/uniform_real_distribution.hpp>
 
 #include "UCTNode.h"
@@ -356,7 +355,7 @@ UCTNode* UCTNode::uct_select_child(int color, bool is_root) {
                 continue;
             }
 
-            // Unexplored children should still be sorted by policy from original sort when created
+            // Unexplored children would be sorted by policy
             // Store earliest unexplored child in the list, in case we decide to explore later
             best = &child;
         }
@@ -393,9 +392,7 @@ UCTNode* UCTNode::uct_select_child(int color, bool is_root) {
         auto success = 1.0f;
         auto failure = 1.0f;
 
-        if (child.get_visits()) {
-            std::tie(success, failure) = child.get_beta_param(color);
-        }
+        std::tie(success, failure) = child.get_beta_param(color);
 
         //success += cfg_beta_prior * fpu_eval;
         //failure += cfg_beta_prior * (1.0f - fpu_eval);
