@@ -41,6 +41,7 @@
 #include <utility>
 #include <vector>
 #include <boost/random/uniform_real_distribution.hpp>
+#include <boost/random/beta_distribution.hpp>
 
 #include "UCTNode.h"
 #include "FastBoard.h"
