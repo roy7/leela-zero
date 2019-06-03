@@ -91,6 +91,8 @@ bool UCTNode::create_children(Network & network,
     m_net_eval = raw_netlist.winrate;
     m_net_variance = raw_netlist.variance;
 
+    set_distribution(m_net_eval, m_net_variance);
+
     const auto stm_eval = raw_netlist.winrate;
     const auto to_move = state.board.get_to_move();
     // our search functions evaluate from black's point of view
@@ -549,5 +551,37 @@ void UCTNode::wait_expanded() {
     (void)v;
 #endif
     assert(v == ExpandState::EXPANDED);
+}
+
+uint64_t pack_floats(float lo, float hi) {
+    assert(sizeof(float) == 4);
+
+    uint64_t target;
+
+    memcpy(&target, &lo, 4);
+    memcpy((char *)&target + 4, &hi, 4);
+
+    return target;
+}
+
+std::pair<float, float> unpack_floats(uint64_t distribution)
+{
+    assert(sizeof(float) == 4);
+
+    float lo, hi;
+
+    memcpy(&lo, &distribution, 4);
+    memcpy(&hi, (char *)&distribution + 4, 4);
+
+    return { lo, hi };
+}
+
+void UCTNode::set_distribution(float mean, float variance)
+{
+    m_distribution = pack_floats(mean, variance);
+}
+
+std::pair<float, float> UCTNode::get_distribution() const {
+    return unpack_floats(m_distribution);
 }
 

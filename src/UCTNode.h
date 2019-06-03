@@ -86,6 +86,8 @@ public:
     void virtual_loss_undo();
     void update(float eval);
     float get_eval_lcb(int color) const;
+    void set_distribution(float mean, float variance);
+    std::pair<float, float> get_distribution() const;
 
     // Defined in UCTNodeRoot.cpp, only to be called on m_root in UCTSearch
     void randomize_first_proportionally();
@@ -133,6 +135,8 @@ private:
     std::atomic<float> m_squared_eval_diff{1e-4f};
     std::atomic<double> m_blackevals{0.0};
     std::atomic<Status> m_status{ACTIVE};
+    // Store best known child distribution as two floats packed into one atomic uint64_t
+    std::atomic<uint64_t> m_distribution;
 
     // m_expand_state acts as the lock for m_children.
     // see manipulation methods below for possible state transition
