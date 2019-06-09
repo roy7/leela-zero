@@ -358,7 +358,7 @@ UCTNode* UCTNode::uct_select_child(int color, bool is_root) {
                 continue;
             }
 
-            // Unexplored children would be sorted by policy
+            // Unexplored children are sorted by policy
             // Store earliest unexplored child in the list, in case we decide to explore later
             best = &child;
         }
