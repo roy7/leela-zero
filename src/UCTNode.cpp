@@ -297,19 +297,10 @@ std::pair<float, float> UCTNode::get_beta_param(int tomove) const {
     auto failure = 1.0f;
     auto variance = get_net_variance() ? get_net_variance() : .000000001;
 
-    if (tomove == FastBoard::BLACK) {
-        success += get_net_eval(tomove) * ( (get_net_eval(tomove) * (1.0f - get_net_eval(tomove)) )/variance - 1.0f);
-        failure += (1.0f - get_net_eval(tomove)) * ( (get_net_eval(tomove) * (1.0f - get_net_eval(tomove)) )/variance - 1.0f);
-    } else {
-        failure += get_net_eval(tomove) * ( (get_net_eval(tomove) * (1.0f - get_net_eval(tomove)) )/variance - 1.0f);
-        success += (1.0f - get_net_eval(tomove)) * ( (get_net_eval(tomove) * (1.0f - get_net_eval(tomove)) )/variance - 1.0f);
-    }
+    success += get_net_eval(tomove) * ( (get_net_eval(tomove) * (1.0f - get_net_eval(tomove)) )/variance - 1.0f);
+    failure += (1.0f - get_net_eval(tomove)) * ( (get_net_eval(tomove) * (1.0f - get_net_eval(tomove)) )/variance - 1.0f);
 
-    if (tomove == FastBoard::BLACK) {
-        return {success, failure};
-    } else {
-        return {failure, success};
-    }
+    return {success, failure};
 }
 
 float UCTNode::get_net_eval(int tomove) const {
