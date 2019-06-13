@@ -572,7 +572,15 @@ void UCTNode::set_distribution(float mean, float variance)
     m_distribution = pack_floats(mean, variance);
 }
 
-std::pair<float, float> UCTNode::get_distribution() const {
-    return unpack_floats(m_distribution);
+std::pair<float, float> UCTNode::get_distribution(int tomove) const {
+    float mean, variance;
+
+    std::tie(mean, variance) =  unpack_floats(m_distribution);
+
+    if (tomove == FastBoard::WHITE) {
+        return { (1.0f - mean), variance };
+    }
+
+    return { mean, variance };
 }
 

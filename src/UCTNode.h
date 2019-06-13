@@ -87,7 +87,7 @@ public:
     void update(float eval);
     float get_eval_lcb(int color) const;
     void set_distribution(float mean, float variance);
-    std::pair<float, float> get_distribution() const;
+    std::pair<float, float> get_distribution(int tomove) const;
 
     // Defined in UCTNodeRoot.cpp, only to be called on m_root in UCTSearch
     void randomize_first_proportionally();
