@@ -207,10 +207,10 @@ void UCTNode::inflate_all_children() {
 void UCTNode::prepare_root_node(Network & network, int color,
                                 std::atomic<int>& nodes,
                                 GameState& root_state) {
-    float root_eval;
+    float root_eval, root_variance;
     const auto had_children = has_children();
     if (expandable()) {
-        create_children(network, nodes, root_state, root_eval);
+        create_children(network, nodes, root_state, root_eval, root_variance);
     }
     if (had_children) {
         root_eval = get_net_eval(color);

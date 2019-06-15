@@ -65,6 +65,7 @@ bool UCTNode::create_children(Network & network,
                               std::atomic<int>& nodecount,
                               GameState& state,
                               float& eval,
+                              float& variance,
                               float min_psa_ratio) {
     // no successors in final state
     if (state.get_passes() >= 2) {
@@ -102,6 +103,7 @@ bool UCTNode::create_children(Network & network,
         m_net_eval = stm_eval;
     }
     eval = m_net_eval;
+    variance = m_net_variance;
 
     std::vector<Network::PolicyVertexPair> nodelist;
 

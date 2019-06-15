@@ -241,13 +241,13 @@ SearchResult UCTSearch::play_simulation(GameState & currstate,
             auto score = currstate.final_score();
             result = SearchResult::from_score(score);
         } else {
-            float eval;
+            float mean, variance;
             const auto had_children = node->has_children();
             const auto success =
-                node->create_children(m_network, m_nodes, currstate, eval,
+                node->create_children(m_network, m_nodes, currstate, mean, variance,
                                       get_min_psa_ratio());
             if (!had_children && success) {
-                result = SearchResult::from_eval(eval);
+                result = SearchResult::from_dist(mean, variance);
             }
         }
     }
@@ -265,7 +265,7 @@ SearchResult UCTSearch::play_simulation(GameState & currstate,
     }
 
     if (result.valid()) {
-        node->update(result.eval());
+        node->update(result.mean());
     }
     node->virtual_loss_undo();
 

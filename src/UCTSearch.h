@@ -44,29 +44,32 @@
 #include "UCTNode.h"
 #include "Network.h"
 
-
 class SearchResult {
 public:
     SearchResult() = default;
     bool valid() const { return m_valid;  }
-    float eval() const { return m_eval;  }
-    static SearchResult from_eval(float eval) {
-        return SearchResult(eval);
+    std::pair<float, float> distribution() const { return { m_mean, m_variance };  }
+    float mean() const { return m_mean; }
+    float variance() const { return m_variance; }
+    static SearchResult from_dist(float mean, float variance) {
+        return SearchResult(mean, variance);
     }
     static SearchResult from_score(float board_score) {
         if (board_score > 0.0f) {
-            return SearchResult(1.0f);
+            return SearchResult(1.0f, 0.000000001f);
         } else if (board_score < 0.0f) {
-            return SearchResult(0.0f);
+            return SearchResult(0.0f, 0.000000001f);
         } else {
-            return SearchResult(0.5f);
+            return SearchResult(0.5f, 0.000000001f);
         }
     }
 private:
-    explicit SearchResult(float eval)
-        : m_valid(true), m_eval(eval) {}
+    explicit SearchResult(float mean, float variance)
+        : m_valid(true), m_mean(mean), m_variance(variance) {}
     bool m_valid{false};
-    float m_eval{0.0f};
+    // Set new result with no information to Beta(1,1) uniform distribution
+    float m_mean{0.5f};
+    float m_variance{0.083333333f};
 };
 
 namespace TimeManagement {
