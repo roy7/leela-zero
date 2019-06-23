@@ -92,8 +92,6 @@ bool UCTNode::create_children(Network & network,
     m_net_eval = raw_netlist.winrate;
     m_net_variance = raw_netlist.variance;
 
-    set_distribution(m_net_eval, m_net_variance);
-
     const auto stm_eval = raw_netlist.winrate;
     const auto to_move = state.board.get_to_move();
     // our search functions evaluate from black's point of view
@@ -104,6 +102,8 @@ bool UCTNode::create_children(Network & network,
     }
     eval = m_net_eval;
     variance = m_net_variance;
+
+    set_distribution(eval, variance);
 
     std::vector<Network::PolicyVertexPair> nodelist;
 
@@ -294,13 +294,26 @@ float UCTNode::get_eval(int tomove) const {
     return get_raw_eval(tomove, m_virtual_loss);
 }
 
-std::pair<float, float> UCTNode::get_beta_param(int tomove) const {
+std::pair<float, float> UCTNode::get_net_beta_param(int tomove) const {
     auto success = 1.0f;
     auto failure = 1.0f;
     auto variance = get_net_variance() ? get_net_variance() : .000000001;
 
     success += get_net_eval(tomove) * ( (get_net_eval(tomove) * (1.0f - get_net_eval(tomove)) )/variance - 1.0f);
     failure += (1.0f - get_net_eval(tomove)) * ( (get_net_eval(tomove) * (1.0f - get_net_eval(tomove)) )/variance - 1.0f);
+
+    return {success, failure};
+}
+
+std::pair<float, float> UCTNode::get_beta_param(int tomove) const {
+    auto success = 1.0f;
+    auto failure = 1.0f;
+    float mean, variance;
+
+    std::tie(mean, variance) = get_distribution(tomove);
+
+    success += mean * ( (mean * (1.0f - mean) )/variance - 1.0f);
+    failure += (1.0f - mean) * ( (mean * (1.0f - mean) )/variance - 1.0f);
 
     return {success, failure};
 }

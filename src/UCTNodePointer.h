@@ -135,6 +135,7 @@ public:
     float get_eval(int tomove) const;
     float get_eval_lcb(int color) const;
     std::pair<float, float> get_beta_param(int tomove) const;
+    std::pair<float, float> get_net_beta_param(int tomove) const;
 };
 
 #endif
