@@ -240,6 +240,7 @@ SearchResult UCTSearch::play_simulation(GameState & currstate,
         if (currstate.get_passes() >= 2) {
             auto score = currstate.final_score();
             result = SearchResult::from_score(score);
+printf("Result from passes.\n");
         } else {
             float mean, variance;
             const auto had_children = node->has_children();
@@ -248,6 +249,7 @@ SearchResult UCTSearch::play_simulation(GameState & currstate,
                                       get_min_psa_ratio());
             if (!had_children && success) {
                 result = SearchResult::from_dist(mean, variance);
+printf("Result from !had_children && success: %f\n", mean);
             }
         }
     }
@@ -261,10 +263,36 @@ SearchResult UCTSearch::play_simulation(GameState & currstate,
             next->invalidate();
         } else {
             result = play_simulation(currstate, next);
+printf("Result from play_simulation\n");
         }
     }
 
     if (result.valid()) {
+        float mean, variance;
+
+        std::tie(mean, variance) = node->get_distribution(color);
+
+        if (color == FastBoard::WHITE)
+        {
+            // Convert mean back to black's perspective
+            mean = 1.0f - mean;
+            if (mean > result.mean()) {
+                printf("White: Comparing my mean %.8f > %.8f result mean, choose lowest\n", mean, result.mean());
+                node->set_distribution(result.mean(), result.variance());
+            } else {
+                // TODO: Use hybrid distribution of parent (nn eval) and children best child (get_distributiion())  by % of policy expanded?
+                result = SearchResult::from_dist(mean, variance);
+            }
+        } else {
+            if (mean < result.mean()) {
+                printf("Black: Comparing my mean %.8f < %.8f result mean, chose highest\n", mean, result.mean());
+                node->set_distribution(result.mean(), result.variance());
+            } else {
+                // TODO: Use hybrid distribution of parent (nn eval) and children best child (get_distributiion())  by % of policy expanded?
+                result = SearchResult::from_dist(mean, variance);
+            }
+        }
+
         node->update(result.mean());
     }
     node->virtual_loss_undo();
@@ -316,13 +344,17 @@ void UCTSearch::dump_stats(FastState & state, UCTNode & parent) {
         float beta_left = boost::math::quantile(boost::math::complement(dist, .95));
         float beta_right = boost::math::quantile(boost::math::complement(dist, .05));
 
+        float mean, variance;
+        std::tie(mean, variance) = node->get_distribution(color);
+
         myprintf("%4s -> %7d (V: %5.2f%%) (LCB: %5.2f%%) (N: %5.2f%%) (Eval: %5.2f%%) Beta(%.2f, %.2f)=%.2f..%.2f PV: %s\n",
             move.c_str(),
             node->get_visits(),
             node->get_visits() ? node->get_raw_eval(color)*100.0f : 0.0f,
             std::max(0.0f, node->get_eval_lcb(color) * 100.0f),
             node->get_policy() * 100.0f,
-            node->get_net_eval(color)*100.0f,
+            //node->get_net_eval(color)*100.0f,
+            mean*100.f,
             success,
             failure,
             beta_left * 100.0f,
