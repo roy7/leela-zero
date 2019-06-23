@@ -156,6 +156,13 @@ float UCTNodePointer::get_eval(int tomove) const {
     return read_ptr(v)->get_eval(tomove);
 }
 
+std::pair<float, float> UCTNodePointer::get_net_beta_param(int tomove) const {
+    // this can only be called if it is an inflated pointer
+    auto v = m_data.load();
+    assert(is_inflated(v));
+    return read_ptr(v)->get_net_beta_param(tomove);
+}
+
 std::pair<float, float> UCTNodePointer::get_beta_param(int tomove) const {
     // this can only be called if it is an inflated pointer
     auto v = m_data.load();
