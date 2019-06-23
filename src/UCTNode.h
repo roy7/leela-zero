@@ -138,6 +138,8 @@ private:
     std::atomic<Status> m_status{ACTIVE};
     // Store best known child distribution as two floats packed into one atomic uint64_t
     std::atomic<uint64_t> m_distribution;
+    // Sum of children's policy % already expanded
+    std::atomic<float> m_policy_explored{0.0f};
 
     // m_expand_state acts as the lock for m_children.
     // see manipulation methods below for possible state transition

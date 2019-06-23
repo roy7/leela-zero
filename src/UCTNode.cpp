@@ -370,7 +370,7 @@ UCTNode* UCTNode::uct_select_child(int color, bool is_root) {
         }
     }
 
-    // Sanity check in case policy doesn't exect add up to 100.0 for each set of children?
+    // Sanity check in case explored policy doesn't exactly add up to 100.0
     if (!num_unexplored_children) {
         policy_explored = 1.00f;
     }
@@ -421,7 +421,14 @@ UCTNode* UCTNode::uct_select_child(int color, bool is_root) {
             best_value = value;
             best = &child;
         }
+    } else {
+        // Going to select a brand new child, so add child's policy to the amount explored
+        // Best to do this at create_children time but no access to parent/policy info there
+        policy_explored += best->get_policy();
     }
+
+    // TODO This might not be thread safe. But should err low instead of high, is that ok?
+    m_policy_explored = policy_explored;
 
     assert(best != nullptr);
     best->inflate();
