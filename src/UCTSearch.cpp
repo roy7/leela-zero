@@ -234,7 +234,7 @@ SearchResult UCTSearch::play_simulation(GameState & currstate,
     const auto color = currstate.get_to_move();
     auto result = SearchResult{};
 
-    node->virtual_loss();
+    //node->virtual_loss();
 
     if (node->expandable()) {
         if (currstate.get_passes() >= 2) {
@@ -295,7 +295,7 @@ printf("Result from play_simulation\n");
 
         node->update(result.mean());
     }
-    node->virtual_loss_undo();
+    //node->virtual_loss_undo();
 
     return result;
 }
