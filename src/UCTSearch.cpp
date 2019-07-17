@@ -240,7 +240,6 @@ SearchResult UCTSearch::play_simulation(GameState & currstate,
         if (currstate.get_passes() >= 2) {
             auto score = currstate.final_score();
             result = SearchResult::from_score(score);
-printf("Result from passes.\n");
         } else {
             float mean, variance;
             const auto had_children = node->has_children();
@@ -249,7 +248,6 @@ printf("Result from passes.\n");
                                       get_min_psa_ratio());
             if (!had_children && success) {
                 result = SearchResult::from_dist(mean, variance);
-printf("Result from !had_children && success: %f\n", mean);
             }
         }
     }
@@ -263,7 +261,6 @@ printf("Result from !had_children && success: %f\n", mean);
             next->invalidate();
         } else {
             result = play_simulation(currstate, next);
-printf("Result from play_simulation\n");
         }
     }
 
@@ -277,14 +274,14 @@ printf("Result from play_simulation\n");
             // Convert mean back to black's perspective
             mean = 1.0f - mean;
             if (mean > result.mean() || !node->has_distribution()) {
-                printf("White: Comparing my mean %.8f > %.8f result mean, choose lowest\n", mean, result.mean());
+                //printf("White: Comparing my mean %.8f > %.8f result mean, choose lowest\n", mean, result.mean());
                 node->set_distribution(result.mean(), result.variance());
             } else {
                 result = SearchResult::from_dist(mean, variance);
             }
         } else {
             if (mean < result.mean() || !node->has_distribution()) {
-                printf("Black: Comparing my mean %.8f < %.8f result mean, chose highest\n", mean, result.mean());
+                //printf("Black: Comparing my mean %.8f < %.8f result mean, chose highest\n", mean, result.mean());
                 node->set_distribution(result.mean(), result.variance());
             } else {
                 result = SearchResult::from_dist(mean, variance);
