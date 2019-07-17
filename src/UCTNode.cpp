@@ -297,7 +297,7 @@ float UCTNode::get_eval(int tomove) const {
 std::pair<float, float> UCTNode::get_net_beta_param(int tomove) const {
     auto success = 1.0f;
     auto failure = 1.0f;
-    auto variance = get_net_variance() ? get_net_variance() : .000000001;
+    auto variance = get_net_variance() > .000000001 ? get_net_variance() : .000000001;
 
     success += get_net_eval(tomove) * ( (get_net_eval(tomove) * (1.0f - get_net_eval(tomove)) )/variance - 1.0f);
     failure += (1.0f - get_net_eval(tomove)) * ( (get_net_eval(tomove) * (1.0f - get_net_eval(tomove)) )/variance - 1.0f);
@@ -311,6 +311,8 @@ std::pair<float, float> UCTNode::get_beta_param(int tomove) const {
     float mean, variance;
 
     std::tie(mean, variance) = get_distribution(tomove);
+
+    if (variance < .000000001) variance = .000000001;
 
     success += mean * ( (mean * (1.0f - mean) )/variance - 1.0f);
     failure += (1.0f - mean) * ( (mean * (1.0f - mean) )/variance - 1.0f);
