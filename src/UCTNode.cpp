@@ -103,7 +103,7 @@ bool UCTNode::create_children(Network & network,
     eval = m_net_eval;
     variance = m_net_variance;
 
-    set_distribution(eval, variance);
+    //set_distribution(eval, variance);
 
     std::vector<Network::PolicyVertexPair> nodelist;
 
@@ -597,12 +597,16 @@ void UCTNode::set_distribution(float mean, float variance)
 std::pair<float, float> UCTNode::get_distribution(int tomove) const {
     float mean, variance;
 
-    std::tie(mean, variance) =  unpack_floats(m_distribution);
+    std::tie(mean, variance) = m_distribution ? unpack_floats(m_distribution) : std::tie(m_net_eval, m_net_variance);
 
     if (tomove == FastBoard::WHITE) {
         return { (1.0f - mean), variance };
     }
 
     return { mean, variance };
+}
+
+bool UCTNode::has_distribution() const {
+    return m_distribution ? true : false;
 }
 

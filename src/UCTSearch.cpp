@@ -276,19 +276,17 @@ printf("Result from play_simulation\n");
         {
             // Convert mean back to black's perspective
             mean = 1.0f - mean;
-            if (mean > result.mean()) {
+            if (mean > result.mean() || !node->has_distribution()) {
                 printf("White: Comparing my mean %.8f > %.8f result mean, choose lowest\n", mean, result.mean());
                 node->set_distribution(result.mean(), result.variance());
             } else {
-                // TODO: Use hybrid distribution of parent (nn eval) and children best child (get_distributiion())  by % of policy expanded?
                 result = SearchResult::from_dist(mean, variance);
             }
         } else {
-            if (mean < result.mean()) {
+            if (mean < result.mean() || !node->has_distribution()) {
                 printf("Black: Comparing my mean %.8f < %.8f result mean, chose highest\n", mean, result.mean());
                 node->set_distribution(result.mean(), result.variance());
             } else {
-                // TODO: Use hybrid distribution of parent (nn eval) and children best child (get_distributiion())  by % of policy expanded?
                 result = SearchResult::from_dist(mean, variance);
             }
         }

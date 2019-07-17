@@ -89,6 +89,7 @@ public:
     float get_eval_lcb(int color) const;
     void set_distribution(float mean, float variance);
     std::pair<float, float> get_distribution(int tomove) const;
+    bool has_distribution() const;
 
     // Defined in UCTNodeRoot.cpp, only to be called on m_root in UCTSearch
     void randomize_first_proportionally();
@@ -137,7 +138,7 @@ private:
     std::atomic<double> m_blackevals{0.0};
     std::atomic<Status> m_status{ACTIVE};
     // Store best known child distribution as two floats packed into one atomic uint64_t
-    std::atomic<uint64_t> m_distribution;
+    std::atomic<uint64_t> m_distribution{0};
     // Sum of children's policy % already expanded
     std::atomic<float> m_policy_explored{0.0f};
 
