@@ -234,7 +234,7 @@ SearchResult UCTSearch::play_simulation(GameState & currstate,
     const auto color = currstate.get_to_move();
     auto result = SearchResult{};
 
-    //node->virtual_loss();
+    node->virtual_loss();
 
     if (node->expandable()) {
         if (currstate.get_passes() >= 2) {
@@ -273,14 +273,14 @@ SearchResult UCTSearch::play_simulation(GameState & currstate,
         {
             // Convert mean back to black's perspective
             mean = 1.0f - mean;
-            if (mean > result.mean() || !node->has_distribution()) {
+            if (mean > result.mean()) { // || !node->has_distribution()) {
                 //printf("White: Comparing my mean %.8f > %.8f result mean, choose lowest\n", mean, result.mean());
                 node->set_distribution(result.mean(), result.variance());
             } else {
                 result = SearchResult::from_dist(mean, variance);
             }
         } else {
-            if (mean < result.mean() || !node->has_distribution()) {
+            if (mean < result.mean()) { // || !node->has_distribution()) {
                 //printf("Black: Comparing my mean %.8f < %.8f result mean, chose highest\n", mean, result.mean());
                 node->set_distribution(result.mean(), result.variance());
             } else {
@@ -290,7 +290,7 @@ SearchResult UCTSearch::play_simulation(GameState & currstate,
 
         node->update(result.mean());
     }
-    //node->virtual_loss_undo();
+    node->virtual_loss_undo();
 
     return result;
 }
