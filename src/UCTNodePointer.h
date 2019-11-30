@@ -132,6 +132,7 @@ public:
     bool active() const;
     int get_move() const;
     // these can only be called if it is an inflated pointer
+    float get_eval_variance(float default_var = 0.0f) const;
     float get_eval(int tomove) const;
     float get_eval_lcb(int color) const;
 };
